@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+
+  "target": "ES2022",
+  "module": "NodeNext",
+  "moduleResolution": "NodeNext",
+  "lib": ["ES2022", "DOM"],
+  "jsx": "react-jsx",
+  "strict": true,
+  "exactOptionalPropertyTypes": true,
+  "noUncheckedIndexedAccess": true,
+  "esModuleInterop": true,
+  "allowSyntheticDefaultImports": true,
+  "skipLibCheck": true,
+  "forceConsistentCasingInFileNames": true,
+  "resolveJsonModule": true,
+  "declaration": true,
+  "noUnusedLocals": true,
+  "noUnusedParameters": true,
+  "noImplicitReturns": true,
+  "noFallthroughCasesInSwitch": true,
+  "isolatedModules": true,
+  "rootDir": "src",
+  "outDir": "dist"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

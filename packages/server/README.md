@@ -1,0 +1,374 @@
+# api-response-tsjs
+
+Type-safe, framework-agnostic **success/error response envelopes**, an
+**error class hierarchy**, and **offset + cursor pagination** helpers for
+Node.js APIs. Ships optional Express, Fastify, and Hono adapters and a Zod
+integration. No framework or validation dependencies - the only runtime
+dependency is the framework-agnostic `client-api-errors` package (error
+classes), with shared response types coming from `client-api-types`.
+
+```bash
+npm install api-response-tsjs
+```
+
+## Why
+
+Every non-trivial API ends up hand-rolling the same things:
+
+- A consistent JSON shape for success and error responses
+- An error class hierarchy that maps cleanly to HTTP status codes
+- Something that turns "whatever got thrown" into a safe, serializable error
+- Offset pagination (`page`/`limit`) *and* cursor pagination, done properly
+- Framework glue (`asyncHandler`, a centralized error handler) that's
+  slightly different in every project
+
+This package is that, done once, fully typed, framework-agnostic at the
+core, with thin optional adapters for Express, Fastify, and Hono.
+
+## The response shape
+
+Every response this library builds is one half of a discriminated union:
+
+```ts
+type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+interface SuccessResponse<T> {
+  success: true;
+  statusCode: number;
+  message?: string;
+  data: T;
+  pagination?: PaginationMeta; // present on list endpoints
+  meta: { timestamp: string; requestId?: string; [key: string]: unknown };
+}
+
+interface ErrorResponse {
+  success: false;
+  statusCode: number;
+  error: { code: string; message: string; details?: ErrorDetail[]; stack?: string };
+  meta: { timestamp: string; requestId?: string; [key: string]: unknown };
+}
+```
+
+Consumers narrow with a single check:
+
+```ts
+const res: ApiResponse<User> = await fetchJson("/api/users/1");
+if (res.success) {
+  console.log(res.data.name); // typed as User
+} else {
+  console.error(res.error.code, res.error.message);
+}
+```
+
+## Success responses
+
+```ts
+import { ok, created, accepted, noContent, deleted, paginated } from "api-response-tsjs";
+
+ok({ id: 1, name: "Ada" });
+// { success: true, statusCode: 200, data: {...}, meta: { timestamp } }
+
+created({ id: 2 });
+// statusCode: 201, message: "Resource created successfully" (override via options.message)
+
+accepted({ jobId: "abc" });
+// statusCode: 202 - for queued/async work
+
+noContent();
+// statusCode: 204, data: null
+
+deleted({ id: "abc-123" });
+// statusCode: 200, message: "Resource deleted successfully"
+
+paginated(items, paginationMeta);
+// pagination lives on the envelope (res.pagination), not inside `data`
+```
+
+All builders accept an options object for `message`, `meta`, and (for the
+generic `successResponse`) `statusCode`:
+
+```ts
+import { successResponse } from "api-response-tsjs";
+
+successResponse(user, { message: "Profile updated", meta: { requestId: "req_123" } });
+```
+
+## Errors
+
+```ts
+import {
+  AppError, BadRequestError, ValidationError, UnauthorizedError, ForbiddenError,
+  NotFoundError, ConflictError, TooManyRequestsError, InternalServerError,
+  ServiceUnavailableError, // ...and more, see src/errors/app-error.ts
+} from "api-response-tsjs";
+
+throw new NotFoundError(`User ${id} not found`);
+throw new ValidationError("Invalid input", [{ field: "email", message: "must be a valid email" }]);
+throw new TooManyRequestsError("Slow down", /* retryAfterSeconds */ 30);
+```
+
+Every error extends `AppError`: `statusCode`, `code` (a stable machine-readable
+string from `ErrorCode`), `isOperational`, and optional `details` /  `cause`.
+
+- **Operational errors** (`isOperational: true`, the default for 4xx) are
+  expected failures - bad input, not found, a conflict - safe to report to
+  the client as-is.
+- **Non-operational errors** (`InternalServerError`, `BadGatewayError`,
+  `ServiceUnavailableError`, `GatewayTimeoutError` default to `false`) mean
+  something unexpected broke. Log these loudly; the message shown to the
+  client should stay generic in production.
+
+Extend `AppError` directly for domain-specific errors:
+
+```ts
+class InsufficientFundsError extends AppError {
+  constructor(accountId: string) {
+    super(`Account ${accountId} has insufficient funds`, 402, "INSUFFICIENT_FUNDS");
+  }
+}
+```
+
+### Turning *anything* thrown into a safe error
+
+```ts
+import { normalizeError, errorResponse } from "api-response-tsjs";
+
+try {
+  await doSomething();
+} catch (err) {
+  const appError = normalizeError(err); // AppError passthrough; anything else -> non-operational InternalServerError
+  const body = errorResponse(appError, { includeStack: process.env.NODE_ENV !== "production" });
+  res.status(body.statusCode).json(body);
+}
+```
+
+`normalizeError` never throws - it safely handles `Error` instances, strings,
+and arbitrary rejected values (even `undefined`/`null`), so your error
+handler doesn't need its own defensive branching.
+
+## Pagination
+
+### Offset (`page` / `limit`)
+
+Best for small/medium datasets, admin UIs, anything needing "jump to page N"
+or a total count.
+
+```ts
+import { parseOffsetParams, getOffset, buildOffsetMeta, paginated } from "api-response-tsjs";
+
+// req.query = { page: "2", limit: "20" } (raw, untrusted strings)
+const params = parseOffsetParams(req.query, { defaultLimit: 20, maxLimit: 100 });
+// -> { page: 2, limit: 20 } - throws ValidationError on garbage input,
+//    clamps an over-large limit instead of rejecting it
+
+const [rows, total] = await Promise.all([
+  db.query.posts.findMany({ limit: params.limit, offset: getOffset(params) }),
+  db.query.posts.count(),
+]);
+
+res.json(paginated(rows, buildOffsetMeta(total, params)));
+// pagination: { type: "offset", page: 2, limit: 20, total, totalPages, hasNext, hasPrev }
+```
+
+### Cursor (opaque, stable under concurrent writes)
+
+Best for large or fast-moving feeds - no expensive `COUNT(*)`/`OFFSET` scans,
+and results stay stable even as rows are inserted/deleted between requests.
+
+```ts
+import { parseCursorParams, decodeCursor, buildCursorPage, paginated } from "api-response-tsjs";
+
+const params = parseCursorParams(req.query); // { cursor?, limit }
+
+// Fetch limit + 1 rows - the extra row is how we detect "is there a next page"
+// without a separate COUNT query.
+const rows = await db.query.posts.findMany({
+  where: params.cursor ? gt(posts.id, decodeCursor<{ id: number }>(params.cursor).id) : undefined,
+  orderBy: asc(posts.id),
+  limit: params.limit + 1,
+});
+
+const page = buildCursorPage(rows, params.limit, (post) => ({ id: post.id }), {
+  requestCursor: params.cursor,
+});
+
+res.json(paginated(page.items, page.meta));
+// pagination: { type: "cursor", limit, nextCursor, prevCursor, hasNext, hasPrev }
+```
+
+`encodeCursor`/`decodeCursor` are generic - encode whatever fields you sort
+by (`{ id }`, `{ createdAt, id }` for a tiebreaker, etc). A malformed/tampered
+cursor decodes to a `ValidationError` (422), never a raw parse exception.
+
+```ts
+import { isOffsetPagination, isCursorPagination } from "api-response-tsjs";
+
+if (isOffsetPagination(response.pagination)) {
+  console.log(response.pagination.totalPages);
+} else if (isCursorPagination(response.pagination)) {
+  console.log(response.pagination.nextCursor);
+}
+```
+
+## CRUD type aliases
+
+Thin, semantic aliases over `SuccessResponse<T>` for documenting route/service
+signatures - no runtime difference, just clearer intent:
+
+```ts
+import type { GetOneResponse, ListResponse, CreateResponse, UpdateResponse, DeleteResponse } from "api-response-tsjs";
+
+async function createUser(input: CreateUserInput): Promise<CreateResponse<User>> { ... }
+async function listUsers(params: OffsetPaginationParams): Promise<ListResponse<User>> { ... }
+```
+
+## Express adapter
+
+```ts
+import express from "express";
+import { asyncHandler, errorHandler, notFoundHandler } from "api-response-tsjs/express";
+import { NotFoundError } from "api-response-tsjs";
+import { ok } from "api-response-tsjs";
+
+const app = express();
+
+app.get("/users/:id", asyncHandler(async (req, res) => {
+  const user = await userService.getById(req.params.id); // throws NotFoundError if missing
+  res.json(ok(user));
+}));
+
+// mount last
+app.use(notFoundHandler());
+app.use(errorHandler({
+  includeStack: process.env.NODE_ENV !== "production",
+  onError: (err, req) => logger.error({ err, url: req.url }, "request failed"),
+}));
+```
+
+`asyncHandler` forwards a rejected promise to `next(err)`; `errorHandler`
+converts any error reaching it (via `normalizeError`) into the standard
+`ErrorResponse` body, sets `Retry-After` for `TooManyRequestsError`, and calls
+your `onError` hook for logging.
+
+The Express adapter also ships `validateRequest(schema, location)` middleware
+for request validation. It works with **any schema library** exposing a
+`.parse(data)` method (zod, valibot, arktype, ...) - thrown `{ issues: [...] }`
+failures become a `ValidationError` with field-level `details`:
+
+```ts
+import { validateRequest } from "api-response-tsjs/express";
+
+app.post("/users", validateRequest(userSchema, "body"), (req, res) => { ... });
+```
+
+## Fastify adapter
+
+```ts
+import Fastify from "fastify";
+import { createErrorHandler, notFoundHandler } from "api-response-tsjs/fastify";
+import { ok } from "api-response-tsjs";
+
+const app = Fastify();
+
+app.get("/users/:id", async (request) => {
+  const user = await userService.getById(request.params.id); // throws NotFoundError if missing
+  return ok(user);
+});
+
+app.setNotFoundHandler(notFoundHandler());
+app.setErrorHandler(createErrorHandler({
+  onError: (err, request) => request.log.error({ err }, "request failed"),
+}));
+```
+
+Fastify handlers can just `return` data or `throw` - no wrapper needed, async
+rejections are native. The adapter also ships `validateRequest(schema, location)`
+for `preHandler` validation (schema-agnostic, same behavior as Express).
+
+## Hono adapter
+
+```ts
+import { Hono } from "hono";
+import { createErrorHandler, notFoundHandler } from "api-response-tsjs/hono";
+import { ok } from "api-response-tsjs";
+
+const app = new Hono();
+
+app.get("/users/:id", (c) => {
+  const user = userService.getById(c.req.param("id")); // throws NotFoundError if missing
+  return c.json(ok(user));
+});
+
+app.notFound(notFoundHandler());
+app.onError(createErrorHandler({
+  onError: (err, c) => console.error({ err, url: c.req.url }, "request failed"),
+}));
+```
+
+`createErrorHandler` converts anything thrown in a handler (via
+`normalizeError`) into the standard `ErrorResponse` body, sets `Retry-After`
+for `TooManyRequestsError`, and echoes the `x-request-id` header into
+`meta.requestId` when present.
+
+## Zod integration
+
+```ts
+import { fromZodError, ZodErrors } from "api-response-tsjs/zod";
+
+const result = createUserSchema.safeParse(req.body);
+if (!result.success) throw fromZodError(result.error);
+// -> ValidationError with one ErrorDetail per Zod issue, field paths dot-joined
+```
+
+The `/zod` subpath is the home of everything zod-specific: `fromZodError`,
+the `ZodErrors` multi-format converter (`tree` / `flat` / `messages` /
+`pretty`), `getIssueMessage`, and the `fastifyValidationPlugin` (adds a
+typed `fastify.validate.body/query/params` decorator):
+
+```ts
+import { fastifyValidationPlugin } from "api-response-tsjs/zod";
+
+await fastify.register(fastifyValidationPlugin);
+const result = fastify.validate.body(createUserSchema, req.body);
+if (result.success) { /* result.data */ } else { /* result.errors, result.tree */ }
+```
+
+## What's exported
+
+| Module | Contents |
+|---|---|
+| `api-response-tsjs` | Types, error classes, `normalizeError`/`isAppError`, success/error builders, offset + cursor pagination helpers, `HttpStatus`, `ErrorCode` |
+| `api-response-tsjs/express` | `asyncHandler`, `errorHandler`, `notFoundHandler`, `routeWrapper`, `validateRequest` |
+| `api-response-tsjs/fastify` | `createErrorHandler`, `notFoundHandler`, `validateRequest` |
+| `api-response-tsjs/hono` | `createErrorHandler`, `notFoundHandler` |
+| `api-response-tsjs/zod` | `fromZodError`, `ZodErrors`, `getIssueMessage`, `fastifyValidationPlugin` |
+
+Full API reference for every method and config type: [docs/](docs/README.md).
+
+Express, Fastify, Hono, and Zod are **optional peer dependencies** - install
+only the ones you use. The core imports neither zod nor any framework code;
+its only dependencies are the framework-agnostic `client-api-errors` (error
+classes) and `client-api-types` (the shared response type contract, also
+installable by frontend clients).
+
+## Design notes
+
+- **ESM + CJS**, with full `.d.ts` declarations for both, via `tsup`. Verified
+  against a real consumer project under `moduleResolution: "NodeNext"`.
+- **`exactOptionalPropertyTypes: true`** throughout - optional fields are
+  either present with a real value or omitted entirely, never explicitly
+  `undefined`, so consumers get precise types.
+- Pagination metadata lives on the response **envelope** (`res.pagination`),
+  not nested inside `data`, so `data` stays exactly "the array of items" for
+  every list endpoint.
+- `AppError.toJSON()` never includes a stack trace unless you explicitly opt
+  in (`includeStack: true`) - safe defaults for production.
+
+## Development
+
+```bash
+npm install
+npm run typecheck
+npm test        # 74 tests: builders, error classes, pagination, express/fastify/hono integration (real HTTP requests), zod
+npm run build   # tsup -> dist/ (ESM + CJS + .d.ts)
+```

@@ -1,0 +1,136 @@
+{
+  "name": "api-response-tsjs",
+  "version": "0.1.0",
+  "description": "Type-safe, framework-agnostic success/error response envelopes, error classes, and offset + cursor pagination helpers for Node.js APIs. Ships optional Express, Fastify, and Hono adapters.",
+  "keywords": [
+    "api",
+    "response",
+    "error-handling",
+    "http-errors",
+    "pagination",
+    "cursor-pagination",
+    "offset-pagination",
+    "typescript",
+    "express",
+    "fastify",
+    "hono",
+    "rest",
+    "crud"
+  ],
+  "author": "Anwar <anwarkamal1434@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-utils/api-toolkit.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://github.com/org-utils/api-toolkit/tree/main/packages/server#readme",
+  "bugs": {
+    "url": "https://github.com/org-utils/api-toolkit/issues"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./express": {
+      "types": "./dist/middleware/express.d.ts",
+      "import": "./dist/express.js",
+      "require": "./dist/express.cjs"
+    },
+    "./fastify": {
+      "types": "./dist/middleware/fastify.d.ts",
+      "import": "./dist/fastify.js",
+      "require": "./dist/fastify.cjs"
+    },
+    "./hono": {
+      "types": "./dist/middleware/hono.d.ts",
+      "import": "./dist/hono.js",
+      "require": "./dist/hono.cjs"
+    },
+    "./zod": {
+      "types": "./dist/integrations/zod.d.ts",
+      "import": "./dist/zod.js",
+      "require": "./dist/zod.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build:js": "tsup",
+    "build:types": "rollup --config rollup.dts.config.ts",
+    "build": "npm run clean && npm run build:js && npm run build:types",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:local": "npm run typecheck && npm run test && npm run build",
+    "changesets:init": "changeset init",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "publish": "changeset publish",
+    "release": "npm run typecheck && npm run test && npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "express": ">=4",
+    "fastify": ">=4",
+    "hono": ">=4",
+    "zod": "^4.4.3"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^1.0.0",
+    "@changesets/cli": "^3.0.0",
+    "@types/express": "5.0.6",
+    "@types/node": "26.2.0",
+    "@types/supertest": "7.2.1",
+    "client-api-types": "*",
+    "express": "5.2.1",
+    "fastify": "5.11.3",
+    "hono": "^4.13.3",
+    "rimraf": "^6.1.3",
+    "rollup": "^4.62.4",
+    "rollup-plugin-dts": "^6.5.1",
+    "supertest": "7.2.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "4.1.10",
+    "zod": "^4.4.3"
+  },
+  "dependencies": {
+    "client-api-errors": "*"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "fsevents@2.3.3": true
+  }
+}

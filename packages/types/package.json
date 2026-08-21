@@ -1,0 +1,82 @@
+{
+  "name": "client-api-types",
+  "version": "0.0.2",
+  "description": "Shared TypeScript types and utilities for JavaScript and TypeScript applications.",
+  "keywords": [
+    "typescript",
+    "types",
+    "utilities",
+    "javascript",
+    "shared",
+    "library"
+  ],
+  "license": "MIT",
+  "author": "Anwar Kamal",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.d.ts"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "default": "./dist/api/index.d.ts"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.d.ts"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build": "npm run clean && npm run build:types",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run build",
+    "changesets:init": "changeset init",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.1",
+    "@types/node": "^26.2.0",
+    "axios": "^1.19.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-utils/api-toolkit.git",
+    "directory": "packages/types"
+  },
+  "bugs": {
+    "url": "https://github.com/org-utils/api-toolkit/issues"
+  },
+  "homepage": "https://github.com/org-utils/api-toolkit/tree/main/packages/types#readme"
+}

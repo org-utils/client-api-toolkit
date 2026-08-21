@@ -1,0 +1,119 @@
+{
+  "name": "client-api-kit",
+  "version": "0.5.0",
+  "description": "Generic, type-safe API client built on axios and api-response-kit's response envelope. Framework-agnostic 'resources' for server components/server actions, plus a TanStack Query hooks layer for client components. Generic CRUD, offset + cursor pagination, unified error handling.",
+  "keywords": [
+    "api-client",
+    "axios",
+    "tanstack-query",
+    "react-query",
+    "server-actions",
+    "server-components",
+    "crud",
+    "pagination",
+    "typescript",
+    "nextjs"
+  ],
+  "author": "Anwar <anwarkamal1434@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-utils/api-toolkit.git",
+    "directory": "packages/client"
+  },
+  "homepage": "https://github.com/org-utils/api-toolkit/tree/main/packages/client#readme",
+  "bugs": {
+    "url": "https://github.com/org-utils/api-toolkit/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:js": "tsup",
+    "build:types": "rollup --config rollup.dts.config.ts",
+    "build": "npm run clean && npm run build:js && npm run build:types && node scripts/add-use-client-directive.mjs",
+    "pre-build": "npm run typecheck && npm run test && npm run build",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "changesets:init": "changeset init",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "publish": "changeset publish",
+    "release": "npm run pre-build && changeset publish"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.0.0",
+    "axios": "^1.7.0",
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "@tanstack/react-query-devtools": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^1.0.0",
+    "@changesets/cli": "^3.0.1",
+    "@tanstack/react-query": "5.101.4",
+    "@tanstack/react-query-devtools": "^5.101.4",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "axios": "1.19.0",
+    "client-api-types": "*",
+    "jsdom": "30.0.1",
+    "msw": "2.15.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rollup": "^4.62.4",
+    "rollup-plugin-dts": "^6.5.1",
+    "tsup": "8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "4.1.11"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "fsevents@2.3.3": true,
+    "msw@2.15.0": true
+  }
+}
