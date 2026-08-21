@@ -20,11 +20,11 @@ function buildResource() {
   const client = createApiClient({ baseURL: BASE_URL });
   return createResource<Post, OffsetPaginationParams, CreatePostInput, UpdatePostInput>(client, {
     baseURL: "/posts",
-    onError: "result",
+    mode: "result",
   });
 }
 
-describe("createResource - onError: 'result'", () => {
+describe("createResource - mode: 'result'", () => {
   beforeEach(() => resetPosts());
 
   it("list resolves { success: true, data } with pagination on success", async () => {
@@ -89,8 +89,8 @@ describe("createResource - onError: 'result'", () => {
 
   it("never throws, even for network errors", async () => {
     const client = createApiClient({ baseURL: BASE_URL });
-    const resource = createResource(client, { baseURL: "/unreachable", onError: "result" });
-    const result = await resource.custom();
+    const resource = createResource(client, { baseURL: "/unreachable", mode: "result" });
+    const result = await resource.custom("GET", "/");
 
     expect(result.success).toBe(false);
     if (result.success) return;
@@ -100,7 +100,7 @@ describe("createResource - onError: 'result'", () => {
 
   it("custom resolves { success: false, error } on server errors", async () => {
     const client = createApiClient({ baseURL: BASE_URL });
-    const resource = createResource<Post>(client, { baseURL: "/posts", onError: "result" });
+    const resource = createResource<Post>(client, { baseURL: "/posts", mode: "result" });
     const result = await resource.custom("GET", "/does-not-exist");
 
     expect(result.success).toBe(false);
@@ -123,7 +123,7 @@ describe("createResource - runtime validation (parse)", () => {
     const client = createApiClient({ baseURL: BASE_URL });
     const posts = createResource<Post, OffsetPaginationParams, CreatePostInput, UpdatePostInput>(client, {
       baseURL: "/posts",
-      onError: "result",
+      mode: "result",
       parse: { getById: titleGuard },
     });
 
@@ -137,7 +137,7 @@ describe("createResource - runtime validation (parse)", () => {
     const client = createApiClient({ baseURL: BASE_URL });
     const posts = createResource<Post>(client, {
       baseURL: "/posts",
-      onError: "result",
+      mode: "result",
       parse: { getById: () => {
         throw new Error("Invalid post payload");
       } },
@@ -170,7 +170,7 @@ describe("createResource - runtime validation (parse)", () => {
     const client = createApiClient({ baseURL: BASE_URL });
     const posts = createResource<Post, OffsetPaginationParams>(client, {
       baseURL: "/posts",
-      onError: "result",
+      mode: "result",
       parse: {
         list: (data) => {
           if (!Array.isArray(data)) throw new Error("Expected an array");
@@ -188,7 +188,7 @@ describe("createResource - runtime validation (parse)", () => {
 
   it("supports a per-call parser on custom requests, inferred from the parse function", async () => {
     const client = createApiClient({ baseURL: BASE_URL });
-    const resource = createResource<Post>(client, { baseURL: "/posts", onError: "result" });
+    const resource = createResource<Post>(client, { baseURL: "/posts", mode: "result" });
 
     const result = await resource.custom("GET", "/export", {
       params: { format: "json" },
