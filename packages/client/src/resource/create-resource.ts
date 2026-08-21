@@ -611,8 +611,9 @@ export function createResource<
    */
   function toAxiosOptions(
     options?: RequestOptions,
-  ): Pick<AxiosRequestConfig, "headers" | "signal"> {
+  ) {
     return {
+      ...options,
       ...(options?.headers
         ? {
             headers: options.headers,
