@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  id-token: write   # for npm provenance (recommended)
+  id-token: write
 
 jobs:
   release:
@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org/
           cache: pnpm
 
       - name: Install dependencies
@@ -39,9 +40,11 @@ jobs:
           pnpm config get ignore-optional
           pnpm why rolldown
 
-      - run: pnpm turbo run typecheck test
+      - name: Typecheck and test
+        run: pnpm turbo run typecheck test
 
-      - run: pnpm turbo run build
+      - name: Build
+        run: pnpm turbo run build
 
       - name: Create Release PR or Publish
         uses: changesets/action@v1
@@ -50,5 +53,4 @@ jobs:
           publish: pnpm run publish-packages
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
-          # GITHUB_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
