@@ -1,5 +1,11 @@
 # app-types
 
+## 0.0.6
+
+### Patch Changes
+
+- [`4a67331`](https://github.com/org-utils/client-api-toolkit/commit/4a67331c0fd6a904209d9201fcd4cceb16288370) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated tyeps
+
 ## 0.0.5
 
 ### Patch Changes
