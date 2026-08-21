@@ -1,4 +1,4 @@
-import { ErrorCode } from "./error-codes";
+import { ErrorCode } from "./error-codes.js";
 import {
   BadGatewayError,
   BadRequestError,
@@ -18,8 +18,8 @@ import {
   UnauthorizedError,
   UnsupportedMediaTypeError,
   ValidationError,
-} from "./http-errors";
-import { HttpStatus } from "./http-status";
+} from "./http-errors.js";
+import { HttpStatus } from "./http-status.js";
 import type { AppErrorOptions } from "client-api-types";
 type ICustomStatuses = number[]
 type ICustomErrorCodes = string[]
