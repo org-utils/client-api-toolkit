@@ -27,8 +27,6 @@ jobs:
 
       - run: pnpm turbo run typecheck test
 
-      - run: npm ci
-
       - run: pnpm turbo run build
 
       - name: Create Release PR or Publish
