@@ -45,22 +45,16 @@
   "scripts": {
     "clean": "rimraf dist",
     "build:types": "tsc --emitDeclarationOnly",
-    "build": "npm run clean && npm run build:types",
+    "build": "npm run typecheck && npm run clean && npm run build:types",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepublishOnly": "npm run build",
-    "changesets:init": "changeset init",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "publish": "changeset publish",
-    "release": "npm run typecheck && npm run clean && npm run build"
+    "release": "npm run build"
 
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.1",
     "@types/node": "^26.2.0",
     "axios": "^1.19.0",
     "eslint": "^9.0.0",

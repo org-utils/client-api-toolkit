@@ -38,8 +38,6 @@
     "node": ">=22.0.0"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.1",
     "client-api-types": "*",
     "rimraf": "^6.1.3",
     "rollup": "^4.62.4",
@@ -55,11 +53,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "changesets:init": "changeset init",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "publish": "changeset publish",
-    "release": "npm run pre-build && changeset publish"
+    "release": "npm run build"
   },
   "allowScripts": {
     "esbuild@0.27.7": true,

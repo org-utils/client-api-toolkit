@@ -68,11 +68,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "changesets:init": "changeset init",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "publish": "changeset publish",
-    "release": "npm run pre-build && changeset publish"
+    "release": "npm run pre-build"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
@@ -92,8 +88,6 @@
     }
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^1.0.0",
-    "@changesets/cli": "^3.0.1",
     "@tanstack/react-query": "5.101.4",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@testing-library/react": "16.3.2",
