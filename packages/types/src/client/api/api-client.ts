@@ -1,4 +1,5 @@
-import type { AxiosInstance, AxiosRequestConfig} from "axios";
+import type { AxiosInstance, RawAxiosRequestConfig } from "axios";
+
 import type { SuccessResponse } from "../../api/index.js";
 import type { MaybePromise } from "../../shared/index.js";
 
@@ -50,9 +51,9 @@ export type EnvelopeMode = "always" | "never" | "auto";
 /**
  * Transport-agnostic request configuration.
  */
-export type ApiRequestConfig = {
+export type ApiRequestConfig = Partial<RawAxiosRequestConfig> & {
   /** HTTP method. Defaults to `GET`. */
-  method?: AxiosRequestConfig["method"];
+  method?: RawAxiosRequestConfig["method"];
 
   /** Relative or absolute request URL. */
   url?: string;
@@ -76,7 +77,7 @@ export type ApiRequestConfig = {
 /**
  * Initial API client configuration.
  */
-export type ApiClientConfig = {
+export type ApiClientConfig = Partial<RawAxiosRequestConfig> & {
   /** Base URL used by all relative requests. */
   baseURL: string;
 
