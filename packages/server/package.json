@@ -72,7 +72,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "clean": "rimraf dist",
+    "clean": "rm -rf  ./dist",
     "build:js": "tsup",
     "build:types": "rollup --config rollup.dts.config.ts",
     "build": "npm run typecheck && npm run test && npm run clean &&  npm run build:js && npm run build:types",
@@ -112,7 +112,6 @@
     "express": "5.2.1",
     "fastify": "5.11.3",
     "hono": "^4.13.3",
-    "rimraf": "^6.1.3",
     "rollup": "^4.62.4",
     "rollup-plugin-dts": "^6.5.1",
     "supertest": "7.2.2",
