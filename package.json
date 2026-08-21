@@ -5,7 +5,7 @@
   "description": "Monorepo for api-response-tsjs (server) and client-api-kit (client) - shared, type-safe API contract for Node/Express/Fastify/Hono servers and React/Next.js clients.",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
    "packageManager": "pnpm@9.15.0",
   "scripts": {
