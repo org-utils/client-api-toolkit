@@ -3,6 +3,7 @@ import { buildCursorPage, parseCursorParams } from "../responses/cursor-paginati
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
 import { ValidationError } from "../errors/index.js";
 
+
 describe("encodeCursor / decodeCursor", () => {
   it("round-trips a payload", () => {
     const cursor = encodeCursor({ id: 42, createdAt: "2026-01-01T00:00:00.000Z" });

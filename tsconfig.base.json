@@ -16,6 +16,5 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "isolatedModules": true
-  }
+    "isolatedModules": true  }
 }
