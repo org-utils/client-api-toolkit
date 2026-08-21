@@ -253,7 +253,7 @@ export interface ThrowResourceClient<
   ListParams extends object = Record<string, unknown>,
   CreateInput = Partial<T>,
   UpdateInput = Partial<T>,
-> extends ResourceClient<T, CreateInput, UpdateInput, ListParams> {
+> extends ResourceClient<T, ListParams, CreateInput, UpdateInput> {
   /**
    * Switches the resource's mode at runtime, like `setHeaders`. The switch is
    * global to the resource (any handle created from it sees the new mode).

@@ -142,7 +142,7 @@ export function createResourceHooks<
   CreateInput = Partial<T>,
   UpdateInput = Partial<T>,
 >(
-  resource: ResourceClient<T, CreateInput, UpdateInput, ListParams>,
+  resource: ResourceClient<T, ListParams, CreateInput, UpdateInput>,
   resourceName: string,
 ): ResourceHooks<T, ListParams, CreateInput, UpdateInput> {
   const queryKeys = createQueryKeys<ListParams>(resourceName);

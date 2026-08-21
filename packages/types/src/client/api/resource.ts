@@ -27,9 +27,9 @@ export interface CreateResourceOptions {
  */
 export interface ResourceClient<
   T,
+  ListParams extends object = Record<string, unknown>,
   CreateInput = Partial<T>,
   UpdateInput = Partial<T>,
-  ListParams extends object = Record<string, unknown>,
 > {
   list(params?: ListParams, options?: RequestOptions): Promise<ListResult<T>>;
   getById(id: string | number, options?: RequestOptions): Promise<T>;
@@ -38,7 +38,7 @@ export interface ResourceClient<
   remove(id: string | number, options?: RequestOptions): Promise<void>;
   custom<R = unknown>(method?: "GET" | "POST" | "PUT" | "DELETE", path?: string, options?: { data?: any; params?: Record<string, any>; options?: RequestOptions}): Promise<R>;
   setConfig: (newConfig: Partial<AxiosRequestConfig> | ((currentConfig: AxiosRequestConfig) => Promise<Partial<AxiosRequestConfig>>)) =>
-    Promise<ResourceClient<T, CreateInput, UpdateInput, ListParams>>
-  setClient: (newClient: ApiClient) => ResourceClient<T, CreateInput, UpdateInput, ListParams>;
-  setHeaders: (headerMethod: () => MaybePromise<Partial<Record<string, any>>>  | undefined) => ResourceClient<T, CreateInput, UpdateInput, ListParams>;
+    Promise<ResourceClient<T, ListParams, CreateInput, UpdateInput>>
+  setClient: (newClient: ApiClient) => ResourceClient<T, ListParams, CreateInput, UpdateInput>;
+  setHeaders: (headerMethod: () => MaybePromise<Partial<Record<string, any>>>  | undefined) => ResourceClient<T, ListParams, CreateInput, UpdateInput>;
 }
