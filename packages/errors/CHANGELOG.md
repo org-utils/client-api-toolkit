@@ -1,5 +1,11 @@
 # client-api-errors
 
+## 0.0.6
+
+### Patch Changes
+
+- [#2](https://github.com/org-utils/client-api-toolkit/pull/2) [`35141ef`](https://github.com/org-utils/client-api-toolkit/commit/35141ef78b3dd9710f529ef33e97e67518468a78) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - The changes represent a structural refactoring of the resource/client API with improved type safety, state management, and builder pattern support.
+
 ## 0.0.5
 
 ### Patch Changes
