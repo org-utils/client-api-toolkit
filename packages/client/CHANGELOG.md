@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.5
+
+### Patch Changes
+
+- [`4a67331`](https://github.com/org-utils/client-api-toolkit/commit/4a67331c0fd6a904209d9201fcd4cceb16288370) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated tyeps
+
 ## 0.5.4
 
 ### Patch Changes
