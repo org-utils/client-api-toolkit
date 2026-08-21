@@ -3,8 +3,8 @@
  * Exported so consumers can reference the same constants (e.g. in tests)
  * instead of magic numbers.
  */
-import type { ErrorCode } from "client-api-types";
-export const HttpStatus: Record<ErrorCode, number> = {
+import { STATUS_CODES } from 'client-api-types'
+export const HttpStatus: Record<STATUS_CODES, number> = {
   OK: 200,
   CREATED: 201,
   ACCEPTED: 202,

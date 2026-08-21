@@ -108,7 +108,7 @@
     "@types/express": "5.0.6",
     "@types/node": "26.2.0",
     "@types/supertest": "7.2.1",
-    "client-api-types": "*",
+    "client-api-types": "workspace:*",
     "express": "5.2.1",
     "fastify": "5.11.3",
     "hono": "^4.13.3",
@@ -121,7 +121,7 @@
     "zod": "^4.4.3"
   },
   "dependencies": {
-    "client-api-errors": "*"
+    "client-api-errors": "workspace:*"
   },
   "allowScripts": {
     "esbuild@0.27.7": true,

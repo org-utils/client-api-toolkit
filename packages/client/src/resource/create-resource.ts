@@ -1,11 +1,34 @@
-import { RawAxiosRequestHeaders, type AxiosRequestConfig } from "axios";
+import {
+  type AxiosRequestConfig,
+  type RawAxiosRequestHeaders,
+} from "axios";
 
-import type { ApiClient, ListResult, ResourceClient } from "client-api-types/client";
-import type { RequestOptions, SuccessResponse } from "client-api-types";
+import type {
+  ApiClient,
+  ListResult,
+  ResourceClient,
+  RequestOptions,
+  SuccessResponse,
+  ApiRequestConfig,
+} from "client-api-types";
+
 import { ApiClientError } from "../errors/ApiClientError.js";
-import { isDefined, normalizeHeaders, safeNormalizeUrl } from "../utils/index.js";
 
-/** Pagination metadata used when the server returns a list without any. */
+import {
+  normalizeHeaders,
+  safeNormalizeUrl,
+} from "../utils/index.js";
+
+import type { MaybePromise } from "client-api-types";
+
+/* -------------------------------------------------------------------------- */
+/*                                    Types                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Default pagination metadata used when the server does not return
+ * pagination information.
+ */
 const EMPTY_OFFSET_PAGINATION = {
   type: "offset" as const,
   page: 1,
@@ -16,62 +39,43 @@ const EMPTY_OFFSET_PAGINATION = {
   hasPrev: false,
 };
 
-/** Axios-level config allowed on a resource, minus `baseURL` (the path lives in `CreateResourceOptions`). */
-type ResourceConfig = Omit<AxiosRequestConfig, "baseURL">;
-
 /**
- * How a resource reports outcomes. `"throw"` rejects with `ApiClientError`
- * on failure (the default - required by the TanStack Query hooks layer, which
- * only treats a rejected `queryFn` as an error); `"result"` never throws and
- * instead returns a typed {@link ResourceResult} union you can narrow with a
- * single `if (result.success)` check; `"query"` returns a
- * {@link QueryResult} shaped like a settled TanStack Query result
- * (`data`/`error`/`isError`/`isSuccess`/...), useful when the same code runs
- * server-side and client-side.
+ * Controls how resource operations expose errors.
  *
- * @deprecated Renamed to {@link ResourceMode}. The `onError` option is kept
- * as an alias for `mode`.
+ * - `throw`  — operations reject with `ApiClientError`.
+ * - `result` — operations resolve to `{ success, data/error }`.
+ * - `query`  — operations resolve to a settled TanStack Query-like result.
  */
-export type ResourceErrorMode = "throw" | "result" | "query";
+export type ResourceMode = "throw" | "result" | "query";
 
 /**
- * How a resource reports outcomes: `"throw"` (default), `"result"`, or
- * `"query"` - see {@link ResourceErrorMode} for the trade-offs.
+ * @deprecated Use {@link ResourceMode}.
  */
-export type ResourceMode = ResourceErrorMode;
+export type ResourceErrorMode = ResourceMode;
 
 /**
- * The discriminated result every resource method resolves to when the
- * resource is created with `mode: "result"`. Narrow with `if (result.success)`:
+ * Result returned by a resource configured with `mode: "result"`.
  *
- * ```ts
- * const res = await users.list({ page: 1 });
- * if (!res.success) return res.error.message; // error: ApiClientError
- * res.data; // data: ListResult<User>
- * ```
+ * @typeParam T - Successful response payload.
  */
 export type ResourceResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: ApiClientError };
+  | {
+      success: true;
+      data: T;
+    }
+  | {
+      success: false;
+      error: ApiClientError;
+    };
 
 /**
- * The result every resource method resolves to when the resource is created
- * with `mode: "query"`: a settled, TanStack Query-shaped object - the same
- * field names the hooks return (`data`, `error`, `isError`, `isSuccess`,
- * `isLoading`, ...), but type-safe: `status` is a strict discriminant and
- * the boolean flags are literal types, so the compiler knows `data` exists
- * exactly when `isSuccess`, and `error` exactly when `isError`.
+ * Settled TanStack Query-like result returned by a resource configured with
+ * `mode: "query"`.
  *
- * `isPending`/`isLoading`/`isFetching` are always `false`: after `await` the
- * call is settled - there is no in-flight state to model. They exist purely
- * for shape parity, so a component can swap a hook call for a plain resource
- * call without changing its field access.
+ * This is intentionally a **settled** result. There is no loading state
+ * because resource methods are already awaited.
  *
- * ```ts
- * const res = await users.getById("1"); // mode: "query"
- * if (res.isError) return res.error.code; // error: ApiClientError
- * res.data; // data: User
- * ```
+ * @typeParam T - Successful response payload.
  */
 export type QueryResult<T> =
   | {
@@ -95,176 +99,323 @@ export type QueryResult<T> =
       isFetching: false;
     };
 
-/** The union of a plain payload and every non-throwing result envelope. */
-export type AnyResult<T> = T | ResourceResult<T> | QueryResult<T>;
-
 /**
- * Extracts the payload from any resource result - plain data, a
- * `ResourceResult`, or a `QueryResult` - and throws the `ApiClientError`
- * when the call failed. Used internally by the hooks layer and the prefetcher
- * so they work with any resource mode. Also handy for forwarding a resource
- * call through a helper that must produce a plain value.
+ * Extracts the actual payload from any resource result.
  *
- * @param result - The resolved value of any resource method.
- * @returns The payload, or throws the failure's `ApiClientError`.
+ * If the resource operation failed, the contained `ApiClientError` is thrown.
  *
  * @example
- * const res = await users.getById("1"); // any mode
- * const user = unwrapResourceResult(res); // User, or throws ApiClientError
+ * ```ts
+ * const result = await users.getById("123");
+ * const user = unwrapResourceResult(result);
+ * ```
  */
-export function unwrapResourceResult<T>(result: AnyResult<T>): T {
+export function unwrapResourceResult<T>(
+  result: T | ResourceResult<T> | QueryResult<T>,
+): T {
   if (result !== null && typeof result === "object") {
     if ("success" in result) {
-      if (result.success) return result.data;
+      if (result.success) {
+        return result.data;
+      }
+
       throw result.error;
     }
+
     if ("status" in result) {
-      if (result.status === "error") throw result.error;
-      return result.data;
+      if (result.status === "success") {
+        return result.data;
+      }
+
+      throw result.error;
     }
   }
+
   return result as T;
 }
 
 /**
- * Optional runtime validators applied to `response.data` before it's
- * returned, so the typed generics are backed by real checks at runtime (e.g.
- * zod schemas). A validator that throws (zod's `parse`) is normalized into
- * an `ApiClientError` with `kind: "unknown"` and the original error as its
- * cause - thrown or returned per the resource's mode.
+ * Runtime validators for standard CRUD operations.
+ *
+ * These are useful with libraries such as Zod, Valibot, ArkType, etc.
+ *
+ * @typeParam T - Resource entity type.
  */
 export type ResourceParsers<T> = {
-  /** Validates list items before they're wrapped in `ListResult`. */
+  /** Validates the list payload. */
   list?: (data: unknown) => T[];
-  /** Validates a single record fetched by id. */
+
+  /** Validates a single entity returned by `getById`. */
   getById?: (data: unknown) => T;
-  /** Validates the record returned by `create`. */
+
+  /** Validates the entity returned by `create`. */
   create?: (data: unknown) => T;
-  /** Validates the record returned by `update`. */
+
+  /** Validates the entity returned by `update`. */
   update?: (data: unknown) => T;
 };
 
-/** Options accepted by `createResource`: the resource path plus any extra axios config. */
-type CreateResourceOptions<Mode extends ResourceMode = "throw", T = unknown> = AxiosRequestConfig & {
-  /** Path relative to the client's baseURL, e.g. "/users". */
-  baseURL: string;
+/**
+ * Options used to create a resource.
+ *
+ * @typeParam Mode - Initial resource error mode.
+ * @typeParam T - Resource entity type.
+ */
+export type CreateResourceOptions<
+  Mode extends ResourceMode = "throw",
+  T = unknown,
+> = Omit<AxiosRequestConfig, "baseURL"> & {
   /**
-   * How outcomes are reported. `"throw"` (default) rejects with
-   * `ApiClientError` - this is what the hooks layer (`createResourceHooks`)
-   * expects; `"result"` returns a typed {@link ResourceResult} union instead
-   * of throwing; `"query"` returns a {@link QueryResult} shaped like a
-   * settled TanStack Query result. Switch modes at runtime via `setMode`.
+   * Resource base path relative to the API client's base URL.
+   *
+   * @example
+   * ```ts
+   * "/users"
+   * ```
+   */
+  baseURL: string;
+
+  /**
+   * Controls how errors are returned.
+   *
+   * @default "throw"
    */
   mode?: Mode;
+
   /**
-   * Alias for `mode`, kept for backwards compatibility. When both are given,
-   * `mode` wins.
+   * Optional runtime response validators.
    */
-  onError?: Mode;
-  /** Optional runtime validators (e.g. zod schemas) for response payloads. */
   parse?: ResourceParsers<T>;
 };
 
-/** The resource contract when `mode: "result"` - every method returns a {@link ResourceResult} instead of throwing. */
-export interface SafeResourceClient<
-  T,
-  ListParams extends object = Record<string, unknown>,
-  CreateInput = Partial<T>,
-  UpdateInput = Partial<T>,
-> {
-  list(params?: ListParams, options?: RequestOptions): Promise<ResourceResult<ListResult<T>>>;
-  getById(id: string | number, options?: RequestOptions): Promise<ResourceResult<T>>;
-  create(input: CreateInput, options?: RequestOptions): Promise<ResourceResult<T>>;
-  update(id: string | number, input: UpdateInput, options?: RequestOptions): Promise<ResourceResult<T>>;
-  remove(id: string | number, options?: RequestOptions): Promise<ResourceResult<null>>;
+/**
+ * Custom endpoint options.
+ */
+export type CustomRequestOptions<R = unknown> = {
+  /** Request body. */
+  data?: unknown;
+
+  /** Query-string parameters. */
+  params?: Record<string, unknown>;
+
+  /** Per-request headers and cancellation signal. */
+  options?: RequestOptions;
+
+  /** Optional runtime response validator. */
+  parse?: (data: unknown) => R;
+};
+
+/**
+ * Common resource operations.
+ */
+type ResourceOperations<
+  _T,
+  ListParams extends object,
+  CreateInput,
+  UpdateInput,
+  Result,
+> = {
+  /**
+   * Fetches a paginated collection.
+   */
+  list(
+    params?: ListParams,
+    options?: RequestOptions,
+  ): Promise<Result extends never ? never : Result>;
+
+  /**
+   * Fetches a single entity.
+   */
+  getById(
+    id: string | number,
+    options?: RequestOptions,
+  ): Promise<Result extends never ? never : Result>;
+
+  /**
+   * Creates an entity.
+   */
+  create(
+    input: CreateInput,
+    options?: RequestOptions,
+  ): Promise<Result extends never ? never : Result>;
+
+  /**
+   * Updates an entity.
+   */
+  update(
+    id: string | number,
+    input: UpdateInput,
+    options?: RequestOptions,
+  ): Promise<Result extends never ? never : Result>;
+
+  /**
+   * Deletes an entity.
+   */
+  remove(
+    id: string | number,
+    options?: RequestOptions,
+  ): Promise<Result extends never ? never : Result>;
+
+  /**
+   * Executes a custom endpoint relative to the resource base path.
+   */
   custom<R = unknown>(
-    method?: "GET" | "POST" | "PUT" | "DELETE",
+    method: CustomHttpMethod,
     path?: string,
-    options?: {
-      data?: any;
-      params?: Record<string, any>;
-      options?: RequestOptions;
-      /** Per-call runtime validator for this request's payload. */
-      parse?: (data: unknown) => R;
-    },
-  ): Promise<ResourceResult<R>>;
-  setConfig(
-    newConfig:
-      | Partial<AxiosRequestConfig>
-      | ((currentConfig: AxiosRequestConfig) => Promise<Partial<AxiosRequestConfig>>),
-  ): Promise<SafeResourceClient<T, ListParams, CreateInput, UpdateInput>>;
-  setClient(newClient: ApiClient): SafeResourceClient<T, ListParams, CreateInput, UpdateInput>;
-  setHeaders(
-    headerMethod: () => MaybePromise<Partial<Record<string, any>>> | undefined,
-  ): SafeResourceClient<T, ListParams, CreateInput, UpdateInput>;
-  /**
-   * Switches the resource's mode at runtime, like `setHeaders`. The switch is
-   * global to the resource (any handle created from it sees the new mode).
-   * Returns the same resource typed for the new mode, so callers get the
-   * precise contract: `users.setMode("result")` is a `SafeResourceClient`.
-   */
-  setMode<M extends ResourceMode>(mode: M): ResourceClientByMode<M, T, ListParams, CreateInput, UpdateInput>;
+    options?: CustomRequestOptions<R>,
+  ): Promise<Result extends never ? never : Result>;
 }
 
-/** The resource contract when `mode: "query"` - every method resolves a settled, TanStack Query-shaped {@link QueryResult} instead of throwing. */
-export interface QueryResourceClient<
+/**
+ * HTTP methods supported by the resource custom endpoint.
+ */
+export type CustomHttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE";
+
+/**
+ * Resource client returned when `mode: "throw"`.
+ */
+export type ThrowResourceClient<
   T,
   ListParams extends object = Record<string, unknown>,
   CreateInput = Partial<T>,
   UpdateInput = Partial<T>,
-> {
-  list(params?: ListParams, options?: RequestOptions): Promise<QueryResult<ListResult<T>>>;
-  getById(id: string | number, options?: RequestOptions): Promise<QueryResult<T>>;
-  create(input: CreateInput, options?: RequestOptions): Promise<QueryResult<T>>;
-  update(id: string | number, input: UpdateInput, options?: RequestOptions): Promise<QueryResult<T>>;
-  remove(id: string | number, options?: RequestOptions): Promise<QueryResult<null>>;
-  custom<R = unknown>(
-    method?: "GET" | "POST" | "PUT" | "DELETE",
-    path?: string,
-    options?: {
-      data?: any;
-      params?: Record<string, any>;
-      options?: RequestOptions;
-      /** Per-call runtime validator for this request's payload. */
-      parse?: (data: unknown) => R;
-    },
-  ): Promise<QueryResult<R>>;
-  setConfig(
-    newConfig:
-      | Partial<AxiosRequestConfig>
-      | ((currentConfig: AxiosRequestConfig) => Promise<Partial<AxiosRequestConfig>>),
-  ): Promise<QueryResourceClient<T, ListParams, CreateInput, UpdateInput>>;
-  setClient(newClient: ApiClient): QueryResourceClient<T, ListParams, CreateInput, UpdateInput>;
-  setHeaders(
-    headerMethod: () => MaybePromise<Partial<Record<string, any>>> | undefined,
-  ): QueryResourceClient<T, ListParams, CreateInput, UpdateInput>;
-  /**
-   * Switches the resource's mode at runtime, like `setHeaders`. The switch is
-   * global to the resource (any handle created from it sees the new mode).
-   * Returns the same resource typed for the new mode, so callers get the
-   * precise contract: `users.setMode("result")` is a `SafeResourceClient`.
-   */
-  setMode<M extends ResourceMode>(mode: M): ResourceClientByMode<M, T, ListParams, CreateInput, UpdateInput>;
-}
+> = ResourceClient<T, CreateInput, UpdateInput, ListParams> &
+    ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "throw">
 
-/** The resource contract when `mode: "throw"` - every method rejects with `ApiClientError` on failure. */
-export interface ThrowResourceClient<
+/**
+ * Resource client returned when `mode: "result"`.
+ */
+export type SafeResourceClient<
   T,
   ListParams extends object = Record<string, unknown>,
   CreateInput = Partial<T>,
   UpdateInput = Partial<T>,
-> extends ResourceClient<T, CreateInput, UpdateInput, ListParams> {
+> = ResourceOperations<
+      T,
+      ListParams,
+      CreateInput,
+      UpdateInput,
+      ResourceResult<any>
+    > &
+    ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "result">
+
+/**
+ * Resource client returned when `mode: "query"`.
+ */
+export type QueryResourceClient<
+  T,
+  ListParams extends object = Record<string, unknown>,
+  CreateInput = Partial<T>,
+  UpdateInput = Partial<T>,
+> = ResourceOperations<
+      T,
+      ListParams,
+      CreateInput,
+      UpdateInput,
+      QueryResult<any>
+    > &
+    ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "query">
+
+/**
+ * Builder methods shared by every resource mode.
+ */
+type ResourceBuilder<
+  T,
+  ListParams extends object,
+  CreateInput,
+  UpdateInput,
+  CurrentMode extends ResourceMode,
+> = {
   /**
-   * Switches the resource's mode at runtime, like `setHeaders`. The switch is
-   * global to the resource (any handle created from it sees the new mode).
-   * Returns the same resource typed for the new mode, so callers get the
-   * precise contract: `users.setMode("result")` is a `SafeResourceClient`.
+   * Updates the resource-level Axios configuration.
+   *
+   * Headers and params are merged rather than replaced.
+   *
+   * @example
+   * ```ts
+   * users
+   *   .setConfig({
+   *     timeout: 10_000,
+   *   })
+   *   .setHeaders(() => ({
+   *     "X-Tenant": tenantId,
+   *   }));
+   * ```
    */
-  setMode<M extends ResourceMode>(mode: M): ResourceClientByMode<M, T, ListParams, CreateInput, UpdateInput>;
+  setConfig(
+    config:
+      | Partial<ResourceConfig>
+      | ((
+          current: Readonly<ResourceConfig>,
+        ) => MaybePromise<Partial<ResourceConfig>>),
+  ): Promise<ResourceClientByMode<
+    CurrentMode,
+    T,
+    ListParams,
+    CreateInput,
+    UpdateInput
+  >>;
+
+  /**
+   * Replaces the API client used by this resource.
+   */
+  setClient(
+    client: ApiClient,
+  ): ResourceClientByMode<
+    CurrentMode,
+    T,
+    ListParams,
+    CreateInput,
+    UpdateInput
+  >;
+
+  /**
+   * Installs a dynamic resource-level header provider.
+   *
+   * The provider executes for every request.
+   */
+  setHeaders(
+    provider:
+      | (() => MaybePromise<Record<string, unknown> | undefined>)
+      | undefined,
+  ): ResourceClientByMode<
+    CurrentMode,
+    T,
+    ListParams,
+    CreateInput,
+    UpdateInput
+  >;
+
+  /**
+   * Changes the resource error mode.
+   *
+   * @example
+   * ```ts
+   * const safeUsers = users.setMode("result");
+   *
+   * const result = await safeUsers.getById("123");
+   * ```
+   */
+  setMode<M extends ResourceMode>(
+    mode: M,
+  ): ResourceClientByMode<
+    M,
+    T,
+    ListParams,
+    CreateInput,
+    UpdateInput
+  >;
 }
 
-/** Picks the resource contract based on the `mode` option. */
-type ResourceClientByMode<
+/**
+ * Resolves the resource API based on its current mode.
+ */
+export type ResourceClientByMode<
   Mode extends ResourceMode,
   T,
   ListParams extends object,
@@ -277,10 +428,7 @@ type ResourceClientByMode<
     : ThrowResourceClient<T, ListParams, CreateInput, UpdateInput>;
 
 /**
- * Any of the three mode-specific resource contracts. Accepted by
- * `createResourceHooks` and `createResourcePrefetcher`, which are
- * mode-agnostic: they extract the payload (or throw the `ApiClientError`)
- * from whatever mode the resource is in via {@link unwrapResourceResult}.
+ * Any resource mode.
  */
 export type AnyResourceClient<
   T,
@@ -292,70 +440,63 @@ export type AnyResourceClient<
   | SafeResourceClient<T, ListParams, CreateInput, UpdateInput>
   | QueryResourceClient<T, ListParams, CreateInput, UpdateInput>;
 
-/** Loose internal shape both contracts share - narrowed to the mode's contract on return. */
-type AnyResource = {
-  list: (params?: any, requestOptions?: RequestOptions) => Promise<any>;
-  getById: (id: string | number, requestOptions?: RequestOptions) => Promise<any>;
-  create: (input: any, requestOptions?: RequestOptions) => Promise<any>;
-  update: (id: string | number, input: any, requestOptions?: RequestOptions) => Promise<any>;
-  remove: (id: string | number, requestOptions?: RequestOptions) => Promise<any>;
-  custom: (method?: any, path?: any, options?: any) => Promise<any>;
-  setConfig: (newConfig: any) => Promise<any>;
-  setClient: (newClient: ApiClient) => any;
-  setHeaders: (headerMethod: any) => any;
-  setMode: (mode: any) => any;
-};
-
-/** A value that may be produced synchronously or asynchronously. */
-type MaybePromise<T> = T | Promise<T>;
+/**
+ * Internal Axios configuration.
+ *
+ * `baseURL` intentionally does not belong here because the resource's
+ * `baseURL` is actually a relative resource path.
+ */
+type ResourceConfig = Omit<AxiosRequestConfig, "baseURL">;
 
 /**
- * Creates a generic CRUD resource bound to `client` and a base path. The
- * returned object is framework-agnostic: plain async functions safe to call
- * from a server component, a server action, a route handler, or client code.
- * Pair it with `createResourceHooks` (from `client-api-kit/react`) to get a
- * TanStack Query hooks layer over the same resource.
+ * Internal mutable state of a resource.
+ */
+type ResourceState = {
+  client: ApiClient;
+  config: ResourceConfig;
+  mode: ResourceMode;
+  headers?: () => MaybePromise<Record<string, unknown> | undefined>;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Resource Factory                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates a reusable CRUD resource bound to an {@link ApiClient}.
  *
-* @typeParam T - The record type this resource manages.
- * @typeParam ListParams - Query params for `list`, typically offset or cursor
- *   pagination params (optionally with filters). Defaults to `Record<string, unknown>`.
- * @typeParam CreateInput - Payload type for `create`. Defaults to `Partial<T>`.
- * @typeParam UpdateInput - Payload type for `update`. Defaults to `Partial<T>`.
- * @param client - The shared {@link ApiClient} to issue requests through.
- * @param options - `{ baseURL: "/users", ... }` - the resource path plus any
- *   axios request config to apply to every request (e.g. `params`, `headers`),
- *   a `mode` option, and optional `parse` validators.
- * @returns A {@link QueryResourceClient} (or {@link SafeResourceClient} /
- *   {@link ThrowResourceClient} when `mode` is `"result"` / `"throw"`) with
- *   `list`, `getById`, `create`, `update`, `remove`, `custom`, runtime
- *   configuration setters, and `setMode` for switching modes on the fly.
+ * The resource is framework agnostic and can be used from:
  *
- * The return contract is chosen by overloading on the `mode` option:
- * `"throw"` (the default) returns a {@link ThrowResourceClient} that rejects
- * with `ApiClientError`; `"result"` returns a {@link SafeResourceClient}
- * whose methods resolve a typed {@link ResourceResult} instead of throwing;
- * `"query"` returns a {@link QueryResourceClient} whose methods resolve a
- * settled {@link QueryResult} shaped like a TanStack Query result.
+ * - React client components
+ * - Next.js server components
+ * - Next.js server actions
+ * - route handlers
+ * - TanStack Query hooks
+ * - Node.js services
  *
- * @example
- * const users = createResource<User, OffsetPaginationParams, CreateUserInput, UpdateUserInput>(
- *   apiClient,
- *   { baseURL: "/users" },
- * ); // mode defaults to "throw" - pass it to createResourceHooks as-is
- * const page = await users.list({ page: 1, limit: 20 }); // ListResult<User>
+ * The returned resource also exposes builder-style configuration methods:
  *
- * @example
- * // Typed success/error results for server actions - no try/catch needed:
- * const users = createResource<User>(apiClient, { baseURL: "/users", mode: "result" });
- * const res = await users.getById("1");
- * if (!res.success) return res.error.message; // error is ApiClientError
- * res.data; // data is User
+ * ```ts
+ * const users = createResource<User>(api, {
+ *   baseURL: "/users",
+ * })
+ *   .setHeaders(() => ({
+ *     "X-Tenant": tenantId,
+ *   }))
+ *   .setConfig({
+ *     timeout: 10_000,
+ *   });
+ * ```
  *
- * @example
- * // Switch modes at runtime - every handle sees the new mode:
- * const users = createResource<User>(apiClient, { baseURL: "/users" }); // "throw"
- * const safe = users.setMode("result");
- * const res = await safe.getById("1"); // { success: true, data } | { success: false, error }
+ * @typeParam T - Resource entity type.
+ * @typeParam ListParams - Parameters accepted by `list`.
+ * @typeParam CreateInput - Payload accepted by `create`.
+ * @typeParam UpdateInput - Payload accepted by `update`.
+ *
+ * @param client - Shared API client.
+ * @param options - Resource configuration.
+ *
+ * @returns A mode-specific resource client.
  */
 export function createResource<
   T,
@@ -366,6 +507,7 @@ export function createResource<
   client: ApiClient,
   options: CreateResourceOptions<"throw", T>,
 ): ThrowResourceClient<T, ListParams, CreateInput, UpdateInput>;
+
 export function createResource<
   T,
   ListParams extends object = Record<string, unknown>,
@@ -375,6 +517,7 @@ export function createResource<
   client: ApiClient,
   options: CreateResourceOptions<"result", T>,
 ): SafeResourceClient<T, ListParams, CreateInput, UpdateInput>;
+
 export function createResource<
   T,
   ListParams extends object = Record<string, unknown>,
@@ -384,6 +527,7 @@ export function createResource<
   client: ApiClient,
   options: CreateResourceOptions<"query", T>,
 ): QueryResourceClient<T, ListParams, CreateInput, UpdateInput>;
+
 export function createResource<
   T,
   ListParams extends object = Record<string, unknown>,
@@ -393,118 +537,275 @@ export function createResource<
 >(
   client: ApiClient,
   options: CreateResourceOptions<Mode, T>,
-): ResourceClientByMode<Mode, T, ListParams, CreateInput, UpdateInput> {
-  const { baseURL: basePath, mode, onError, parse, ...initialConfig } = options;
-  /** Effective mode: `mode` wins over the deprecated `onError` alias when both are given; defaults to `"throw"`. */
-  let errorMode = mode ?? onError ?? "throw";
-  /** The client used for requests; replaceable at runtime via `setClient`. */
-  let rClient = client;
-  /** Base config merged into every request; replaceable via `setConfig`. */
-  let config: ResourceConfig = {
-    ...initialConfig,
+): ResourceClientByMode<
+  Mode,
+  T,
+  ListParams,
+  CreateInput,
+  UpdateInput
+> {
+  const {
+    baseURL: basePath,
+    mode,
+    parse,
+    ...initialConfig
+  } = options;
+
+  const state: ResourceState = {
+    client,
+    mode: mode ?? "throw",
+    config: {
+      ...initialConfig,
+    },
   };
-  /** Resource-level header getter, installed via `setHeaders`. */
-  let headers: () => MaybePromise<Partial<Record<string, any>>> | undefined;
 
   /**
-   * Merges several header sources into one plain object, with later sources
-   * winning on key conflicts. Accepts plain objects and WHATWG `Headers`.
-   *
-   * @param headers - Header sources, lowest precedence first.
-   * @returns A single merged header record.
+   * Merges Axios header sources.
    */
   function mergeHeaders(
-    ...headers: (AxiosRequestConfig["headers"] | undefined)[]
+    ...sources: Array<AxiosRequestConfig["headers"] | undefined>
   ): RawAxiosRequestHeaders {
-    const merged: RawAxiosRequestHeaders = {};
+    const result: RawAxiosRequestHeaders = {};
 
-    for (const h of headers) {
-      if (!h) continue;
+    for (const source of sources) {
+      if (!source) continue;
 
-      if (h instanceof Headers) {
-        Object.assign(merged, Object.fromEntries(h.entries()));
-      } else {
-        Object.assign(merged, h);
-      }
+      Object.assign(
+        result,
+        normalizeHeaders(source),
+      );
     }
 
-    return merged;
+    return result;
   }
 
   /**
-   * Merges a base resource config with overrides, combining `headers` and
-   * `params` instead of replacing them.
+   * Merges resource configuration.
    *
-   * @param base - The current resource config.
-   * @param override - The partial config to apply on top.
-   * @returns The merged config.
+   * Headers and params are intentionally merged because replacing either
+   * during `setConfig()` would make incremental builder configuration
+   * surprising.
    */
   function mergeConfig(
-    base: ResourceConfig,
-    override: Partial<ResourceConfig>,
+    current: ResourceConfig,
+    next: Partial<ResourceConfig>,
   ): ResourceConfig {
     return {
-      ...base,
-      ...override,
+      ...current,
+      ...next,
 
       headers: mergeHeaders(
-        normalizeHeaders(base.headers),
-        normalizeHeaders(override.headers),
+        current.headers,
+        next.headers,
       ),
 
       params: {
-        ...(base.params ?? {}),
-        ...(override.params ?? {}),
+        ...(current.params ?? {}),
+        ...(next.params ?? {}),
       },
     };
   }
 
   /**
-   * Executes a request through the resource's client, layering the resource
-   * config, resource-level headers, and per-call params onto the request.
+   * Converts library request options into Axios request options.
+   */
+  function toAxiosOptions(
+    options?: RequestOptions,
+  ): Pick<AxiosRequestConfig, "headers" | "signal"> {
+    return {
+      ...(options?.headers
+        ? {
+            headers: options.headers,
+          }
+        : {}),
+
+      ...(options?.signal
+        ? {
+            signal: options.signal,
+          }
+        : {}),
+    };
+  }
+
+  /**
+   * Executes a request through the current API client.
    *
-   * @param request - The per-call axios request config.
-   * @returns The unwrapped success envelope.
+   * Configuration precedence:
+   *
+   * 1. API client's defaults
+   * 2. resource configuration
+   * 3. dynamic resource headers
+   * 4. per-request headers
+   *
+   * Request params follow the same layered model.
+   */
+  // async function execute<R>(
+  //   request: AxiosRequestConfig,
+  // ): Promise<SuccessResponse<R>> {
+  //   const dynamicHeaders = await state.headers?.();
+
+  //   return state.client.request<R>({
+  //     ...state.config,
+  //     ...request,
+
+  //     headers: mergeHeaders(
+  //       state.client.axios.defaults.headers.common,
+  //       state.config.headers,
+  //       dynamicHeaders,
+  //       request.headers,
+  //     ),
+
+  //     params: {
+  //       ...(state.config.params ?? {}),
+  //       ...(request.params ?? {}),
+  //     },
+  //   });
+  // }
+
+
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Axios -> API config                            */
+  /* -------------------------------------------------------------------------- */
+
+  /**
+   * Converts an Axios request configuration into the transport-agnostic
+   * `ApiRequestConfig` used by `ApiClient`.
+   *
+   * Do not pass `AxiosRequestConfig` directly to `ApiClient.request()`.
+   *
+   * `ApiClient` intentionally does not expose Axios-specific types, so the
+   * Axios implementation must perform this conversion at the boundary.
+   *
+   * This also avoids leaking Axios's `GenericAbortSignal` into the public
+   * `ApiRequestConfig.signal: AbortSignal` contract.
+   *
+   * @param config - Axios request configuration.
+   * @returns Transport-agnostic API request configuration.
+   */
+  function toApiRequestConfig(
+    config: AxiosRequestConfig,
+  ): ApiRequestConfig {
+    const result: ApiRequestConfig = {};
+
+    if (config.method !== undefined) {
+      result.method = config.method;
+    }
+
+    if (config.url !== undefined) {
+      result.url = config.url;
+    }
+
+    if (config.params !== undefined) {
+      result.params = config.params as Record<string, unknown>;
+    }
+
+    if (config.data !== undefined) {
+      result.data = config.data;
+    }
+
+    if (config.headers !== undefined) {
+      result.headers = normalizeHeaders(
+        config.headers,
+      ) as Record<string, string>;
+    }
+
+    if (config.signal !== undefined) {
+      /*
+       * Axios accepts GenericAbortSignal while the public transport contract
+       * uses the standard DOM AbortSignal.
+       *
+       * Axios request signals normally originate from AbortController and are
+       * therefore compatible at runtime. The cast is isolated here rather
+       * than leaking Axios's type into the shared package.
+       */
+      result.signal = config.signal as AbortSignal;
+    }
+
+    if (config.timeout !== undefined) {
+      result.timeout = config.timeout;
+    }
+
+    return result;
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Resource execute                              */
+  /* -------------------------------------------------------------------------- */
+
+  /**
+   * Executes a resource request through the currently configured API client.
+   *
+   * Configuration precedence:
+   *
+   * 1. API client defaults
+   * 2. Resource configuration
+   * 3. Dynamic resource headers
+   * 4. Per-request headers
+   *
+   * Parameters follow the same precedence rules.
+   *
+   * Axios-specific configuration is converted into the package's
+   * transport-agnostic `ApiRequestConfig` before reaching `ApiClient`.
    */
   async function execute<R>(
     request: AxiosRequestConfig,
   ): Promise<SuccessResponse<R>> {
-    const resolved = await headers?.();
-    return rClient.request<R>({
-      ...config,
+    const dynamicHeaders = await state.headers?.() || {};
+
+    const axiosConfig: AxiosRequestConfig = {
+      ...state.config,
       ...request,
 
       headers: mergeHeaders(
-        normalizeHeaders(rClient.axios.defaults.headers.common),
-        normalizeHeaders(config.headers),
-        normalizeHeaders(resolved),
-        normalizeHeaders(request.headers),
+        state.client.axios.defaults.headers.common,
+        state.config.headers,
+        (dynamicHeaders || {}) as Record<string, any>,
+        request.headers,
       ),
 
       params: {
-        ...(config.params ?? {}),
+        ...(state.config.params ?? {}),
         ...(request.params ?? {}),
       },
-    });
+    };
+
+    return state.client.request<R>(
+      toApiRequestConfig(axiosConfig),
+    );
   }
 
   /**
-   * Runs an operation and reports outcomes per the resource's mode:
-   * `"throw"` rethrows, `"result"` returns a typed {@link ResourceResult},
-   * `"query"` returns a settled, TanStack Query-shaped {@link QueryResult}.
-   *
-   * @param exec - The operation to run (request + validation).
-   * @returns The operation's value, or a result object when in a result mode.
+   * Normalizes arbitrary thrown values into ApiClientError.
    */
-  async function settle<R>(exec: () => Promise<R>): Promise<R | ResourceResult<R> | QueryResult<R>> {
-    if (errorMode === "throw") return exec();
+  function normalizeError(error: unknown): ApiClientError {
+    return error instanceof ApiClientError
+      ? error
+      : ApiClientError.unknown(error);
+  }
+
+  /**
+   * Executes an operation according to the current resource mode.
+   */
+  async function settle<R>(
+    operation: () => Promise<R>,
+  ): Promise<R | ResourceResult<R> | QueryResult<R>> {
+    if (state.mode === "throw") {
+      return operation();
+    }
+
     try {
-      const data = await exec();
-      if (errorMode === "result") {
-        return { success: true as const, data };
+      const data = await operation();
+
+      if (state.mode === "result") {
+        return {
+          success: true,
+          data,
+        };
       }
+
       return {
-        status: "success" as const,
+        status: "success",
         data,
         error: null,
         isPending: false,
@@ -514,12 +815,17 @@ export function createResource<
         isFetching: false,
       };
     } catch (cause) {
-      const error = ApiClientError.unknown(cause);
-      if (errorMode === "result") {
-        return { success: false as const, error };
+      const error = normalizeError(cause);
+
+      if (state.mode === "result") {
+        return {
+          success: false,
+          error,
+        };
       }
+
       return {
-        status: "error" as const,
+        status: "error",
         data: undefined,
         error,
         isPending: false,
@@ -532,16 +838,16 @@ export function createResource<
   }
 
   /**
-   * Applies an optional runtime validator to a payload. Validator failures
-   * (e.g. a throwing zod `parse`) are normalized into an `ApiClientError`
-   * with `kind: "unknown"` and the original error as its cause.
-   *
-   * @param parser - The validator to run, if any.
-   * @param data - The raw payload from the server.
-   * @returns The validated payload.
+   * Runs a runtime response validator.
    */
-  function validate<Out>(parser: ((data: unknown) => Out) | undefined, data: unknown): Out {
-    if (!parser) return data as Out;
+  function parseResponse<R>(
+    parser: ((data: unknown) => R) | undefined,
+    data: unknown,
+  ): R {
+    if (!parser) {
+      return data as R;
+    }
+
     try {
       return parser(data);
     } catch (cause) {
@@ -549,104 +855,131 @@ export function createResource<
     }
   }
 
-  const resource: AnyResource = {
+  /**
+   * Builds an entity URL safely.
+   */
+  function entityPath(id: string | number): string {
+    return `${basePath}/${encodeURIComponent(String(id))}`;
+  }
+
+  const resource = {
     /**
-     * Fetches a paginated list of records.
+     * Fetches a paginated list of resources.
      *
-     * @param params - Query params (page/limit, cursor, filters, ...).
-     * @param requestOptions - Per-call headers and/or an abort signal.
-     * @returns The list items plus their pagination metadata.
+     * @param params - Pagination and filtering parameters.
+     * @param options - Per-request headers and cancellation signal.
      */
-    async list(params, requestOptions) {
+    async list(
+      params?: ListParams,
+      options?: RequestOptions,
+    ) {
       return settle(async () => {
         const response = await execute<T[]>({
           method: "GET",
           url: basePath,
           params,
-          ...toAxiosOptions(requestOptions),
+          ...toAxiosOptions(options),
         });
 
         return {
-          items: validate(parse?.list, response.data),
-          pagination: response.pagination ?? EMPTY_OFFSET_PAGINATION,
-        };
+          items: parseResponse(parse?.list, response.data),
+          pagination:
+            response.pagination ?? EMPTY_OFFSET_PAGINATION,
+        } satisfies ListResult<T>;
       });
     },
 
     /**
-     * Fetches a single record by id.
+     * Fetches one resource by ID.
      *
-     * @param id - The record's id. Falsy ids (undefined/null/empty) request
-     *   the base path itself rather than a malformed URL.
-     * @param requestOptions - Per-call headers and/or an abort signal.
-     * @returns The record.
+     * @param id - Resource identifier.
+     * @param options - Per-request headers and cancellation signal.
      */
-    async getById(id, requestOptions) {
+    async getById(
+      id: string | number,
+      options?: RequestOptions,
+    ) {
       return settle(async () => {
         const response = await execute<T>({
           method: "GET",
-          url: `${basePath}${isDefined(id) ? `/${encodeURIComponent(String(id))}` : ""}`,
-          ...toAxiosOptions(requestOptions),
+          url: entityPath(id),
+          ...toAxiosOptions(options),
         });
 
-        return validate(parse?.getById, response.data);
+        return parseResponse(
+          parse?.getById,
+          response.data,
+        );
       });
     },
 
     /**
-     * Creates a record with a POST to the base path.
+     * Creates a resource.
      *
-     * @param input - The creation payload.
-     * @param requestOptions - Per-call headers and/or an abort signal.
-     * @returns The created record as returned by the server.
+     * @param input - Creation payload.
+     * @param options - Per-request headers and cancellation signal.
      */
-    async create(input, requestOptions) {
+    async create(
+      input: CreateInput,
+      options?: RequestOptions,
+    ) {
       return settle(async () => {
         const response = await execute<T>({
           method: "POST",
           url: basePath,
           data: input,
-          ...toAxiosOptions(requestOptions),
+          ...toAxiosOptions(options),
         });
 
-        return validate(parse?.create, response.data);
+        return parseResponse(
+          parse?.create,
+          response.data,
+        );
       });
     },
 
     /**
-     * Partially updates a record with a PATCH to `/basePath/:id`.
+     * Partially updates a resource.
      *
-     * @param id - The record's id.
-     * @param input - The update payload (merged server-side).
-     * @param requestOptions - Per-call headers and/or an abort signal.
-     * @returns The updated record as returned by the server.
+     * @param id - Resource identifier.
+     * @param input - Update payload.
+     * @param options - Per-request headers and cancellation signal.
      */
-    async update(id, input, requestOptions) {
+    async update(
+      id: string | number,
+      input: UpdateInput,
+      options?: RequestOptions,
+    ) {
       return settle(async () => {
         const response = await execute<T>({
           method: "PATCH",
-          url: `${basePath}${isDefined(id) ? `/${encodeURIComponent(String(id))}` : ""}`,
+          url: entityPath(id),
           data: input,
-          ...toAxiosOptions(requestOptions),
+          ...toAxiosOptions(options),
         });
 
-        return validate(parse?.update, response.data);
+        return parseResponse(
+          parse?.update,
+          response.data,
+        );
       });
     },
 
     /**
-     * Deletes a record with a DELETE to `/basePath/:id`.
+     * Deletes a resource.
      *
-     * @param id - The record's id.
-     * @param requestOptions - Per-call headers and/or an abort signal.
-     * @returns Resolves once the server confirms deletion.
+     * @param id - Resource identifier.
+     * @param options - Per-request headers and cancellation signal.
      */
-    async remove(id, requestOptions) {
+    async remove(
+      id: string | number,
+      options?: RequestOptions,
+    ) {
       return settle(async () => {
-        await execute({
+        await execute<null>({
           method: "DELETE",
-          url: `${basePath}${isDefined(id) ? `/${encodeURIComponent(String(id))}` : ""}`,
-          ...toAxiosOptions(requestOptions),
+          url: entityPath(id),
+          ...toAxiosOptions(options),
         });
 
         return null;
@@ -654,32 +987,32 @@ export function createResource<
     },
 
     /**
-     * Escape hatch for endpoints that don't fit the CRUD shape. Issues an
-     * arbitrary method against `/basePath/:path`.
+     * Executes a custom endpoint relative to the resource base path.
      *
-     * @typeParam R - The response payload type. Defaults to `unknown`.
-     * @param method - HTTP method. Defaults to `"GET"`.
-     * @param path - Path appended to the base path (normalized: leading slash
-     *   added, double slashes collapsed). Defaults to the base path itself.
-     * @param options - Request body, query params, per-call headers/signal,
-     *   and an optional per-call runtime validator for the payload.
-     * @returns The raw response payload.
+     * @typeParam R - Expected response payload.
+     *
+     * @param method - HTTP method.
+     * @param path - Optional relative endpoint.
+     * @param options - Request body, params, request options and validator.
      *
      * @example
-     * await users.custom("POST", "/import", { data: csvPayload, options: { headers: { "Content-Type": "text/csv" } } });
+     * ```ts
+     * await users.custom("POST", "/bulk-import", {
+     *   data: payload,
+     * });
+     * ```
      */
     async custom<R = unknown>(
-      method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+      method: CustomHttpMethod = "GET",
       path?: string,
-      options?: {
-        data?: any;
-        params?: Record<string, any>;
-        options?: RequestOptions;
-        /** Per-call runtime validator for this request's payload. */
-        parse?: (data: unknown) => R;
-      },
+      options?: CustomRequestOptions<R>,
     ) {
-      const { data, params, options: requestOptions, parse: parseCustom } = options ?? {};
+      const {
+        data,
+        params,
+        options: requestOptions,
+        parse: parser,
+      } = options ?? {};
 
       return settle(async () => {
         const response = await execute<R>({
@@ -690,113 +1023,96 @@ export function createResource<
           ...toAxiosOptions(requestOptions),
         });
 
-        return validate(parseCustom, response.data);
+        return parseResponse(
+          parser,
+          response.data,
+        );
       });
     },
 
     /**
-     * Replaces the resource's base config at runtime. Accepts a partial config
-     * or a function receiving the current (frozen) config. Headers and params
-     * are merged with the existing ones; other fields are replaced.
+     * Updates resource-level Axios configuration.
      *
-     * @param newConfig - Partial config, or a (possibly async) function
-     *   computing one from the current config.
-     * @returns This same resource, so calls can be chained.
+     * This method is asynchronous because the configuration updater may
+     * return a Promise.
+     *
+     * @param next - Partial configuration or async configuration factory.
      */
     async setConfig(
-      newConfig:
+      next:
         | Partial<ResourceConfig>
         | ((
             current: Readonly<ResourceConfig>,
           ) => MaybePromise<Partial<ResourceConfig>>),
     ) {
-      const resolved =
-        typeof newConfig === "function"
-          ? await newConfig(Object.freeze({ ...config }))
-          : newConfig;
+      const patch =
+        typeof next === "function"
+          ? await next(
+              Object.freeze({
+                ...state.config,
+              }),
+            )
+          : next;
 
-      config = mergeConfig(config, {
-        ...resolved,
-        ...(resolved.headers
-          ? {
-              headers: normalizeHeaders(resolved.headers) as Record<
-                string,
-                any
-              >,
-            }
-          : {}),
-      });
+      state.config = mergeConfig(
+        state.config,
+        patch,
+      );
 
       return resource;
     },
 
     /**
-     * Swaps the underlying API client at runtime (e.g. after a token source
-     * change or to point at a different base URL).
+     * Replaces the API client used by this resource.
      *
-     * @param newClient - The client to use for subsequent requests.
-     * @returns This same resource, so calls can be chained.
+     * This operation is synchronous and therefore fully chainable.
      */
     setClient(newClient: ApiClient) {
-      rClient = newClient;
+      state.client = newClient;
 
       return resource;
     },
 
     /**
-     * Sets a function that supplies headers for every request made through
-     * this resource. Replaces any previously installed getter.
+     * Installs or replaces the dynamic resource header provider.
      *
-     * @param headerMethod - A function returning (possibly async) the headers
-     *   to add to each request.
-     * @returns This same resource, so calls can be chained.
+     * Returning `undefined` removes dynamic headers for that request.
+     *
+     * @param provider - Header factory executed before every request.
      */
     setHeaders(
-      headerMethod: () =>
-        MaybePromise<Partial<Record<string, any>>> | undefined,
+      provider:
+        | (() => MaybePromise<Record<string, unknown> | undefined>)
     ) {
-      headers = headerMethod;
+      state.headers = provider;
 
       return resource;
     },
 
     /**
-     * Switches the resource's mode at runtime (`"query"` | `"result"` |
-     * `"throw"`), like `setHeaders`. The switch is global to the resource -
-     * any handle created from it (including ones captured earlier) sees the
-     * new mode. Returns the same resource typed for the new mode, so the
-     * call site gets the precise contract.
+     * Changes the resource error mode.
      *
-     * @param mode - The mode to switch to.
-     * @returns This same resource, typed for the new mode, so calls can be chained.
+     * The resource itself remains the same mutable instance; only its
+     * compile-time view changes.
      */
     setMode<M extends ResourceMode>(mode: M) {
-      errorMode = mode;
+      state.mode = mode;
 
-      return resource as ResourceClientByMode<M, T, ListParams, CreateInput, UpdateInput>;
+      return resource as ResourceClientByMode<
+        M,
+        T,
+        ListParams,
+        CreateInput,
+        UpdateInput
+      >;
     },
   };
 
-  return resource as ResourceClientByMode<Mode, T, ListParams, CreateInput, UpdateInput>;
-}
-
-/**
- * Converts the library's `RequestOptions` into the subset of axios config
- * that per-call options may override.
- *
- * @param requestOptions - Per-call headers and/or an abort signal.
- * @returns An axios config fragment with only `headers`/`signal` set.
- */
-function toAxiosOptions(requestOptions?: RequestOptions) {
-  const result: Pick<AxiosRequestConfig, "headers" | "signal"> = {};
-
-  if (requestOptions?.headers) {
-    result.headers = requestOptions.headers;
-  }
-
-  if (requestOptions?.signal) {
-    result.signal = requestOptions.signal;
-  }
-
-  return result;
+  return resource as ResourceClientByMode<
+    Mode,
+    T,
+    ListParams,
+    CreateInput,
+    UpdateInput
+  >;
 }
