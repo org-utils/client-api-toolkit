@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.3
+
+### Patch Changes
+
+- [`7346904`](https://github.com/org-utils/client-api-toolkit/commit/73469043a20f72df8d1131ae72df6d90a0de6add) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - resolve bug
+
 ## 0.5.2
 
 ### Patch Changes
