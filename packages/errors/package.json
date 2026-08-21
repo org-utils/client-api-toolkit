@@ -1,6 +1,6 @@
 {
   "name": "client-api-errors",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Framework-agnostic application and HTTP error primitives for Node.js and TypeScript applications.",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
