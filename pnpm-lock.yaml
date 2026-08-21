@@ -45,8 +45,8 @@ importers:
         specifier: 1.19.0
         version: 1.19.0
       client-api-types:
-        specifier: '*'
-        version: 0.0.2
+        specifier: workspace:*
+        version: link:../types
       jsdom:
         specifier: 30.0.1
         version: 30.0.1(@noble/hashes@1.8.0)
@@ -78,8 +78,8 @@ importers:
   packages/errors:
     devDependencies:
       client-api-types:
-        specifier: '*'
-        version: 0.0.2
+        specifier: workspace:*
+        version: link:../types
       rollup:
         specifier: ^4.62.4
         version: 4.62.4
@@ -96,8 +96,8 @@ importers:
   packages/server:
     dependencies:
       client-api-errors:
-        specifier: '*'
-        version: 0.0.4
+        specifier: workspace:*
+        version: link:../errors
     devDependencies:
       '@types/express':
         specifier: 5.0.6
@@ -109,8 +109,8 @@ importers:
         specifier: 7.2.1
         version: 7.2.1
       client-api-types:
-        specifier: '*'
-        version: 0.0.2
+        specifier: workspace:*
+        version: link:../types
       express:
         specifier: 5.2.1
         version: 5.2.1
@@ -1315,14 +1315,6 @@ packages:
   cli-width@4.1.0:
     resolution: {integrity: sha512-ouuZd4/dm2Sw5Gmqy6bGyNNNe1qt9RpmxveLSO7KcgsTnU7RXfsw+/bukWGo1abgBiMAic068rclZsO4IWmmxQ==}
     engines: {node: '>= 12'}
-
-  client-api-errors@0.0.4:
-    resolution: {integrity: sha512-hE10q54UERjc5QcJpLQnVHdXjmHVuiLbOTUbE+M+sl1QUs8MsVMzvtaasM3/F/zQzzYmZvHUolOeCXZ7zg4gXw==}
-    engines: {node: '>=20'}
-
-  client-api-types@0.0.2:
-    resolution: {integrity: sha512-NyYxaEf4X0RyDeJBBj7RPcSilNUnhS2TA3cKqrsJUEqlXs5ERbv1YpNrIlVWbjdUxOO6tB7c+adIILvMliEdUw==}
-    engines: {node: '>=20'}
 
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
@@ -3715,10 +3707,6 @@ snapshots:
       readdirp: 4.1.2
 
   cli-width@4.1.0: {}
-
-  client-api-errors@0.0.4: {}
-
-  client-api-types@0.0.2: {}
 
   cliui@8.0.1:
     dependencies:

@@ -18,7 +18,7 @@ export {
 } from "./resource/create-resource.js";
 export type {
   AnyResourceClient,
-  AnyResult,
+  // AnyResult,
   QueryResult,
   QueryResourceClient,
   ResourceResult,

@@ -1,4 +1,4 @@
-import { ErrorCode, ErrorDetail, HttpStatusCode } from "../shared/index.js";
+import { STATUS_CODES, ErrorDetail, HttpStatusCode } from "../shared/index.js";
 
 export interface AppErrorOptions {
   /** Field-level breakdown, typically used by ValidationError. */
@@ -12,7 +12,7 @@ export interface AppErrorOptions {
   isOperational?: boolean;
   /** The underlying error this one wraps, if any (preserved for logging, never serialized to clients). */
   cause?: unknown;
-  code?: ErrorCode;
+  code?: STATUS_CODES;
   statusCode?: HttpStatusCode;
 }
 

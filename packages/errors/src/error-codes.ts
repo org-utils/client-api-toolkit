@@ -3,8 +3,8 @@
  * Consumers should switch/match on these rather than parsing `error.message`
  * (which is free-text and may change wording over time).
  */
-import type { ErrorCode as ERRCodes } from "client-api-types";
-export const ErrorCode: Record<ERRCodes, ERRCodes> = {
+import type { STATUS_CODES } from "client-api-types";
+export const ErrorCode: Record<STATUS_CODES, STATUS_CODES> = {
   BAD_REQUEST: "BAD_REQUEST",
   VALIDATION_ERROR: "VALIDATION_ERROR",
   UNAUTHORIZED: "UNAUTHORIZED",
@@ -24,8 +24,12 @@ export const ErrorCode: Record<ERRCodes, ERRCodes> = {
   SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
   GATEWAY_TIMEOUT: "GATEWAY_TIMEOUT",
   UNKNOWN_ERROR: "UNKNOWN_ERROR",
+  OK: "OK",
+  ACCEPTED: "ACCEPTED",
+  NO_CONTENT: "NO_CONTENT",
+  CREATED: "CREATED",
 } as const;
 
 export type ErrorCode =
-  | ERRCodes
+  | STATUS_CODES
   | (string & {});

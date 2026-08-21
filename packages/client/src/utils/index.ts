@@ -2,12 +2,12 @@ import { CursorPaginationMeta, OffsetPaginationMeta, PaginationMeta } from "clie
 import type { AxiosRequestConfig } from "axios";
 
 /** Narrowing helpers so consumers don't need to hand-roll `"type" in meta` checks. */
-export function isOffsetPagination(meta: PaginationMeta): meta is OffsetPaginationMeta {
-  return meta.type === "offset";
+export function isOffsetPagination(meta?: PaginationMeta): meta is OffsetPaginationMeta {
+  return meta?.type === "offset";
 }
 
-export function isCursorPagination(meta: PaginationMeta): meta is CursorPaginationMeta {
-  return meta.type === "cursor";
+export function isCursorPagination(meta?: PaginationMeta): meta is CursorPaginationMeta {
+  return meta?.type === "cursor";
 }
 
 /** Converts a WHATWG `Headers` instance (e.g. from a fetch request) into a plain object axios can use. */

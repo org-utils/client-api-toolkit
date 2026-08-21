@@ -6,8 +6,12 @@
  * via `CustomError` / `AppErrorOptions.code` as a plain `string`, not by
  * widening this union.
  */
-export type ErrorCode =
+export type STATUS_CODES =
+  "CREATED"
+  | "OK"
+  | "NO_CONTENT"
   | "BAD_REQUEST"
+  | "ACCEPTED"
   | "VALIDATION_ERROR"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
