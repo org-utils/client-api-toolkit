@@ -300,7 +300,7 @@ export type SafeResourceClient<
       ListParams,
       CreateInput,
       UpdateInput,
-      ResourceResult<any>
+      ResourceResult<T>
     > &
     ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "result">
 
@@ -317,7 +317,7 @@ export type QueryResourceClient<
       ListParams,
       CreateInput,
       UpdateInput,
-      QueryResult<any>
+      QueryResult<T>
     > &
     ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "query">
 
