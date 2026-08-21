@@ -96,7 +96,7 @@ describe("createResource - mode: 'query'", () => {
   it("never throws, even for network errors", async () => {
     const client = createApiClient({ baseURL: BASE_URL });
     const resource = createResource(client, { baseURL: "/unreachable", mode: "query" });
-    const result = await resource.custom();
+    const result = await resource.custom("GET", "/");
 
     expect(result.status).toBe("error");
     if (!result.isError) return;
