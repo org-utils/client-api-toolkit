@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.6
+
+### Patch Changes
+
+- [#9](https://github.com/org-utils/client-api-toolkit/pull/9) [`dd06fbb`](https://github.com/org-utils/client-api-toolkit/commit/dd06fbb15e1855fa77504e686034cf9a9e00ecd8) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Optimize code and remove dead code
+
 ## 0.5.5
 
 ### Patch Changes
