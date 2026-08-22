@@ -27,6 +27,10 @@ export type {
   ResourceParsers,
   SafeResourceClient,
   ThrowResourceClient,
+  ResourceClientByMode,
+  CustomRequestOptions,
+  CustomHttpMethod,
+
 } from "./resource/create-resource.js";
 export { createQueryKeys } from "./resource/query-keys.js";
 export type { QueryKeyFactory } from "./resource/query-keys.js";
