@@ -15,6 +15,7 @@ export type { ApiClientErrorKind } from "./errors/ApiClientError.js";
 export {
   createResource,
   unwrapResourceResult,
+  createApiResources
 } from "./resource/create-resource.js";
 export type {
   AnyResourceClient,

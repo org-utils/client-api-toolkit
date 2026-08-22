@@ -1054,3 +1054,27 @@ export function createResource<
     UpdateInput
   >;
 }
+
+export const createApiResources = <T, ListParams extends Record<string, unknown> = Record<string, unknown>, CreateInput = Partial<T>, UpdateInput = Partial<T>>(
+  client: ApiClient,
+  options: Omit<CreateResourceOptions, "mode">,
+) => {
+  const { baseURL: path,...rest } = options;
+  return {
+    query: createResource<T, ListParams>(client, {
+      baseURL: path,
+      mode: "query",
+      ...rest,
+    } as CreateResourceOptions<"query", T>),
+    result: createResource<T, ListParams, CreateInput, UpdateInput>(client, {
+      baseURL: path,
+      mode: "result",
+      ...rest,
+    } as CreateResourceOptions<"result", T>),
+    throw: createResource<T, ListParams, CreateInput, UpdateInput>(client, {
+      baseURL: path,
+      mode: "throw",
+      ...rest,
+    } as CreateResourceOptions<"throw", T>),
+  }
+}
