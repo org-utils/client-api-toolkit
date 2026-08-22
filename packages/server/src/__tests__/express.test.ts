@@ -38,6 +38,14 @@ function buildApp() {
   );
 
   app.get(
+    "/schema-validate-query",
+    validateRequest(z.object({ page: z.coerce.number().min(1).default(1) }), "query"),
+    asyncHandler(async (req, res) => {
+      res.json(ok(req.query));
+    }),
+  );
+
+  app.get(
     "/rate-limited",
     asyncHandler(async () => {
       throw new TooManyRequestsError("Slow down", 42);
@@ -111,5 +119,17 @@ describe("express adapter", () => {
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
     expect(res.body.error.details[0].field).toBe("email");
     expect(res.body.error.message).toBe("Invalid body parameters");
+  });
+
+  it("validateRequest replaces req.query without throwing on Express 5's getter-only property", async () => {
+    const res = await request(buildApp()).get("/schema-validate-query").query({ page: "3" });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ page: 3 });
+  });
+
+  it("validateRequest applies query schema defaults when the query string is empty", async () => {
+    const res = await request(buildApp()).get("/schema-validate-query");
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ page: 1 });
   });
 });

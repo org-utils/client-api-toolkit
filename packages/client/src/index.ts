@@ -18,7 +18,7 @@ export {
 } from "./resource/create-resource.js";
 export type {
   AnyResourceClient,
-  // AnyResult,
+  CreateResourceOptions,
   QueryResult,
   QueryResourceClient,
   ResourceResult,
@@ -49,7 +49,6 @@ export type {
   RetryConfig,
   TokenProvider,
   ApiClientErrorOptions,
-  CreateResourceOptions,
   ListResult,
   ResourceClient,
 } from "client-api-types";

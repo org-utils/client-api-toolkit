@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "../../api/index.js";
+import type { MaybePromise } from "../../shared/index.js";
 
 import { AxiosRequestConfig } from "axios";
 import { ApiClient, RequestOptions } from "./api-client.js";
@@ -10,10 +11,6 @@ export interface ListResult<T> {
   pagination?: PaginationMeta;
 }
 
-
-
-
-type MaybePromise<T> = T | Promise<T>;
 export interface CreateResourceOptions {
   /** Path relative to the client's baseURL, e.g. "/users". No trailing slash. */
   basePath: string;
@@ -36,7 +33,7 @@ export interface ResourceClient<
   create(input: CreateInput, options?: RequestOptions): Promise<T>;
   update(id: string | number, input: UpdateInput, options?: RequestOptions): Promise<T>;
   remove(id: string | number, options?: RequestOptions): Promise<void>;
-  custom<R = unknown>(method?: "GET" | "POST" | "PUT" | "DELETE", path?: string, options?: { data?: any; params?: Record<string, any>; options?: RequestOptions}): Promise<R>;
+  custom<R = unknown>(method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path?: string, options?: { data?: any; params?: Record<string, any>; options?: RequestOptions}): Promise<R>;
   setConfig: (newConfig: Partial<AxiosRequestConfig> | ((currentConfig: AxiosRequestConfig) => Promise<Partial<AxiosRequestConfig>>)) =>
     Promise<ResourceClient<T, ListParams, CreateInput, UpdateInput>>
   setClient: (newClient: ApiClient) => ResourceClient<T, ListParams, CreateInput, UpdateInput>;

@@ -29,6 +29,3 @@ export const HttpStatus: Record<STATUS_CODES, number> = {
   VALIDATION_ERROR: 422,
   UNKNOWN_ERROR: 500,
 } as const;
-export type HttpStatusCode =
-  | (typeof HttpStatus)[keyof typeof HttpStatus]
-  | (number & {});

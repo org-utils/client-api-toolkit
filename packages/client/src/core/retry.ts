@@ -1,12 +1,21 @@
 import type { AxiosError } from "axios";
 import type { RetryConfig } from "client-api-types";
 
-/** Default retry policy when the caller doesn't provide one. */
+/**
+ * Default retry policy when the caller doesn't provide one.
+ *
+ * `retryMethods` intentionally excludes `"delete"`: although DELETE is
+ * idempotent per the HTTP spec, plenty of real-world DELETE endpoints have
+ * side effects that aren't safely repeatable (audit logs, notifications,
+ * decrementing counters, "delete the most recent X" semantics, ...).
+ * Retrying it automatically is opt-in via `retryMethods` - matches the
+ * documented default on `RetryConfig.retryMethods`.
+ */
 const DEFAULTS: Required<RetryConfig> = {
   retries: 2,
   retryDelayMs: 300,
   retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
-  retryMethods: ["get", "head", "options", "delete"],
+  retryMethods: ["get", "head", "options"],
 };
 
 /**
