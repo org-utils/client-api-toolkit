@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.7
+
+### Patch Changes
+
+- [#11](https://github.com/org-utils/client-api-toolkit/pull/11) [`cc5d628`](https://github.com/org-utils/client-api-toolkit/commit/cc5d6285692a8bb1daf39747346cac4fd60d6ca6) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated types to export
+
 ## 0.5.6
 
 ### Patch Changes
