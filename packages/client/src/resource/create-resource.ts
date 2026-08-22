@@ -205,67 +205,6 @@ export type CustomRequestOptions<R = unknown> = {
   parse?: (data: unknown) => R;
 };
 
-// /**
-//  * Common resource operations.
-//  */
-// type ResourceOperations<
-//   _T,
-//   ListParams extends object,
-//   CreateInput,
-//   UpdateInput,
-//   Result,
-// > = {
-//   /**
-//    * Fetches a paginated collection.
-//    */
-//   list(
-//     params?: ListParams,
-//     options?: RequestOptions,
-//   ): Promise<Result extends never ? never : ListResult<Result>>;
-
-//   /**
-//    * Fetches a single entity.
-//    */
-//   getById(
-//     id: string | number,
-//     options?: RequestOptions,
-//   ): Promise<Result extends never ? never : Result>;
-
-//   /**
-//    * Creates an entity.
-//    */
-//   create(
-//     input: CreateInput,
-//     options?: RequestOptions,
-//   ): Promise<Result extends never ? never : Result>;
-
-//   /**
-//    * Updates an entity.
-//    */
-//   update(
-//     id: string | number,
-//     input: UpdateInput,
-//     options?: RequestOptions,
-//   ): Promise<Result extends never ? never : Result>;
-
-//   /**
-//    * Deletes an entity.
-//    */
-//   remove(
-//     id: string | number,
-//     options?: RequestOptions,
-//   ): Promise<Result extends never ? never : Result>;
-
-//   /**
-//    * Executes a custom endpoint relative to the resource base path.
-//    */
-//   custom<R = unknown>(
-//     method: CustomHttpMethod,
-//     path?: string,
-//     options?: CustomRequestOptions<R>,
-//   ): Promise<Result extends never ? never : Result>;
-// }
-
 /**
  * HTTP methods supported by the resource custom endpoint.
  */
@@ -276,14 +215,8 @@ export type CustomHttpMethod =
   | "PATCH"
   | "DELETE";
 
-
-
-
-
-
-
-  /** The resource contract when `mode: "result"` - every method returns a {@link ResourceResult} instead of throwing. */
-  export type SafeResourceClient<
+/** The resource contract when `mode: "result"` - every method returns a {@link ResourceResult} instead of throwing. */
+export type SafeResourceClient<
     T,
     ListParams extends object = Record<string, unknown>,
     CreateInput = Partial<T>,
@@ -303,82 +236,33 @@ export type CustomHttpMethod =
   } &
   ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "result">
 
-  /** The resource contract when `mode: "query"` - every method resolves a settled, TanStack Query-shaped {@link QueryResult} instead of throwing. */
-  export type QueryResourceClient<
-    T,
-    ListParams extends object = Record<string, unknown>,
-    CreateInput = Partial<T>,
-    UpdateInput = Partial<T>,
-    > =
-    {
-    list(params?: ListParams, options?: RequestOptions): Promise<QueryResult<ListResult<T>>>;
-    getById(id: string | number, options?: RequestOptions): Promise<QueryResult<T>>;
-    create(input: CreateInput, options?: RequestOptions): Promise<QueryResult<T>>;
-    update(id: string | number, input: UpdateInput, options?: RequestOptions): Promise<QueryResult<T>>;
-    remove(id: string | number, options?: RequestOptions): Promise<QueryResult<null>>;
-    custom<R = unknown>(
-      method: CustomHttpMethod,
-      path?: string,
-      options?: CustomRequestOptions<R>
-    ): Promise<QueryResult<R>>;
-    }
-    &
-  ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "result">
+/** The resource contract when `mode: "query"` - every method resolves a settled, TanStack Query-shaped {@link QueryResult} instead of throwing. */
+export type QueryResourceClient<
+  T,
+  ListParams extends object = Record<string, unknown>,
+  CreateInput = Partial<T>,
+  UpdateInput = Partial<T>,
+> = {
+  list(params?: ListParams, options?: RequestOptions): Promise<QueryResult<ListResult<T>>>;
+  getById(id: string | number, options?: RequestOptions): Promise<QueryResult<T>>;
+  create(input: CreateInput, options?: RequestOptions): Promise<QueryResult<T>>;
+  update(id: string | number, input: UpdateInput, options?: RequestOptions): Promise<QueryResult<T>>;
+  remove(id: string | number, options?: RequestOptions): Promise<QueryResult<null>>;
+  custom<R = unknown>(
+    method: CustomHttpMethod,
+    path?: string,
+    options?: CustomRequestOptions<R>
+  ): Promise<QueryResult<R>>;
+} & ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "query">
 
-  /** The resource contract when `mode: "throw"` - every method rejects with `ApiClientError` on failure. */
-  export type ThrowResourceClient<
-    T,
-    ListParams extends object = Record<string, unknown>,
-    CreateInput = Partial<T>,
-    UpdateInput = Partial<T>,
-  > = ResourceClient<T, ListParams, CreateInput, UpdateInput> &
-      ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "throw">
-
-
-/**
- * Resource client returned when `mode: "throw"`.
- */
-// export type ThrowResourceClient<
-//   T,
-//   ListParams extends object = Record<string, unknown>,
-//   CreateInput = Partial<T>,
-//   UpdateInput = Partial<T>,
-// > = ResourceClient<T, ListParams, CreateInput, UpdateInput> &
-//     ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "throw">
-
-// /**
-//  * Resource client returned when `mode: "result"`.
-//  */
-// export type SafeResourceClient<
-//   T,
-//   ListParams extends object = Record<string, unknown>,
-//   CreateInput = Partial<T>,
-//   UpdateInput = Partial<T>,
-// > = ResourceOperations<
-//       T,
-//       ListParams,
-//       CreateInput,
-//       UpdateInput,
-//       ResourceResult<T>
-//     > &
-//     ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "result">
-
-// /**
-//  * Resource client returned when `mode: "query"`.
-//  */
-// export type QueryResourceClient<
-//   T,
-//   ListParams extends object = Record<string, unknown>,
-//   CreateInput = Partial<T>,
-//   UpdateInput = Partial<T>,
-// > = ResourceOperations<
-//       T,
-//       ListParams,
-//       CreateInput,
-//       UpdateInput,
-//       QueryResult<T>
-//     > &
-//     ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "query">
+/** The resource contract when `mode: "throw"` - every method rejects with `ApiClientError` on failure. */
+export type ThrowResourceClient<
+  T,
+  ListParams extends object = Record<string, unknown>,
+  CreateInput = Partial<T>,
+  UpdateInput = Partial<T>,
+> = ResourceClient<T, ListParams, CreateInput, UpdateInput> &
+    ResourceBuilder<T, ListParams, CreateInput, UpdateInput, "throw">
 
 /**
  * Builder methods shared by every resource mode.

@@ -24,10 +24,10 @@ export interface QueryKeyFactory<ListParams> {
   detail: (id: string | number) => readonly [string, "detail", string | number];
   /** `[resourceName, "custom", method, path, params]` - a single custom request, keyed by its request shape. */
   custom: (
-    method?: "GET" | "POST" | "PUT" | "DELETE",
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     path?: string,
     params?: Record<string, any>,
-  ) => readonly [string, "custom", "GET" | "POST" | "PUT" | "DELETE" | undefined, string | undefined, Record<string, any> | undefined];
+  ) => readonly [string, "custom", "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined, string | undefined, Record<string, any> | undefined];
 }
 
 /**

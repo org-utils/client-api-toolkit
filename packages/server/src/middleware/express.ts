@@ -203,7 +203,19 @@ export function validateRequest<T>(
           break;
         case "query":
           data = schema.parse(req.query);
-          req.query = data as any;
+          // Express 5 exposes `req.query` as a getter-only accessor (backed by
+          // the configured query parser), so a plain `req.query = data`
+          // assignment throws `TypeError: Cannot set property query of
+          // #<IncomingMessage> which has only a getter`. Redefining the
+          // property is the supported way to replace it post-parse; this
+          // also works unchanged on Express 4, where `query` is a normal
+          // writable property.
+          Object.defineProperty(req, "query", {
+            value: data,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
           break;
         case "params":
           data = schema.parse(req.params);

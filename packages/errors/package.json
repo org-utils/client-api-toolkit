@@ -39,11 +39,11 @@
     "node": ">=22.0.0"
   },
   "devDependencies": {
-    "client-api-types": "workspace:*",
     "rollup": "^4.62.4",
     "rollup-plugin-dts": "^6.5.1",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "client-api-types": "workspace:*"
   },
   "scripts": {
     "clean": "rm -rf ./dist",
@@ -52,7 +52,6 @@
     "build": "npm run clean && npm run build:js && npm run build:types",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
     "release": "npm run build"
   },
   "allowScripts": {

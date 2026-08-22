@@ -112,7 +112,7 @@ export interface ResourcePrefetcher<T, ListParams extends object> {
    */
   prefetchCustom: <R = unknown>(
     queryClient: QueryClient,
-    method?: "GET" | "POST" | "PUT" | "DELETE",
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     path?: string,
     callOptions?: {
       data?: any;
@@ -229,7 +229,7 @@ export function createResourcePrefetcher<
   /** {@link ResourcePrefetcher.prefetchCustom} */
   async function prefetchCustom<R = unknown>(
     queryClient: QueryClient,
-    method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
     path?: string,
     callOptions?: {
       data?: any;
