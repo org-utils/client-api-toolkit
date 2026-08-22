@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.8
+
+### Patch Changes
+
+- [`e8f5511`](https://github.com/org-utils/client-api-toolkit/commit/e8f5511bcb402e7442cd37a645554a3724ed87ec) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - exported all three api resource modes creation
+
 ## 0.5.7
 
 ### Patch Changes
