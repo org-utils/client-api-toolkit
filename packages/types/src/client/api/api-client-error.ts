@@ -1,4 +1,4 @@
-import type { ErrorDetail } from "../../shared/index.js";
+import type { ErrorDetail, HttpStatusCode, STATUS_CODES } from "../../shared/index.js";
 
 export type ApiClientErrorKind =
   | "network"
@@ -11,9 +11,9 @@ export type ApiClientErrorKind =
 export interface ApiClientErrorOptions {
   kind: ApiClientErrorKind;
   message: string;
-  statusCode?: number;
+  statusCode?: HttpStatusCode;
   /** Machine-readable code from the server's ErrorResponse, or a local one like `"NETWORK_ERROR"`. */
-  code?: string;
+  code?: STATUS_CODES;
   details?: ErrorDetail[];
   cause?: unknown;
 }

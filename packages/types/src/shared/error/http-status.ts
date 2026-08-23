@@ -24,4 +24,5 @@ export type HttpStatusCode =
   | 501
   | 502
   | 503
-  | 504;
+  | 504
+  | (number & {});

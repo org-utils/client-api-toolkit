@@ -1,3 +1,4 @@
+import { STATUS_CODES } from "./error-codes.js";
 
 
 
@@ -8,7 +9,7 @@ export interface ErrorDetail {
   /** Human-readable explanation of what's wrong with this field. */
   message: string;
   /** Machine-readable sub-code for this specific detail (e.g. "too_small", "invalid_type"). */
-  code?: string;
+  code?: STATUS_CODES;
   value?: unknown;
   [key: string]: unknown;
 }

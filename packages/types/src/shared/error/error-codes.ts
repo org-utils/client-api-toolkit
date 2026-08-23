@@ -29,4 +29,5 @@ export type STATUS_CODES =
   | "BAD_GATEWAY"
   | "SERVICE_UNAVAILABLE"
   | "GATEWAY_TIMEOUT"
-  | "UNKNOWN_ERROR";
+  | "UNKNOWN_ERROR"
+  | (string & {})

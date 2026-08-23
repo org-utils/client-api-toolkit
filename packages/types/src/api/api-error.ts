@@ -15,7 +15,6 @@ export interface AppErrorOptions {
   code?: STATUS_CODES;
   statusCode?: HttpStatusCode;
 }
-
 export interface NormalizedError {
   code: string;
   message: string;
