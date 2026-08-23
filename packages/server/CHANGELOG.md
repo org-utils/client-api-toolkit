@@ -1,5 +1,11 @@
 # api-response-tsjs
 
+## 0.1.6
+
+### Patch Changes
+
+- [`f2855c7`](https://github.com/org-utils/client-api-toolkit/commit/f2855c7e5b8c23ec1e9d7427f2a72ad03e6342cd) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated types and files
+
 ## 0.1.5
 
 ### Patch Changes
