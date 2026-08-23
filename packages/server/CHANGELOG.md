@@ -1,5 +1,13 @@
 # api-response-tsjs
 
+## 0.1.7
+
+### Patch Changes
+
+- [`fc22651`](https://github.com/org-utils/client-api-toolkit/commit/fc2265143ab22b74b82d366cf8c7dc4e36f47649) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated types
+- Updated dependencies [[`fc22651`](https://github.com/org-utils/client-api-toolkit/commit/fc2265143ab22b74b82d366cf8c7dc4e36f47649)]:
+  - client-api-errors@0.0.10
+
 ## 0.1.6
 
 ### Patch Changes

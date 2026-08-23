@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.9
+
+### Patch Changes
+
+- [`fc22651`](https://github.com/org-utils/client-api-toolkit/commit/fc2265143ab22b74b82d366cf8c7dc4e36f47649) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated types
+
 ## 0.5.8
 
 ### Patch Changes
