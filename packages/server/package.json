@@ -59,6 +59,12 @@
       "import": "./dist/zod.js",
       "require": "./dist/zod.cjs"
     },
+    "./fastify-validation": {
+      "types": "./dist/integrations/fastify-validation.d.ts",
+      "import": "./dist/fastify-validation.js",
+      "require": "./dist/fastify-validation.cjs"
+    },
+
     "./package.json": "./package.json"
   },
   "files": [

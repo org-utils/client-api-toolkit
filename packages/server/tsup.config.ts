@@ -7,6 +7,7 @@ export default defineConfig({
     fastify: "src/middleware/fastify.ts",
     hono: "src/middleware/hono.ts",
     zod: "src/integrations/zod.ts",
+    "fastify-validation": "src/integrations/fastify-validation.ts",
     error: "src/errors/index.ts",
   },
   format: ["esm", "cjs"],
