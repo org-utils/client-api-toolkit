@@ -38,7 +38,6 @@ jobs:
           node --version
           pnpm --version
           pnpm config get ignore-optional
-          pnpm why rolldown
 
       - name: Typecheck and test
         run: pnpm turbo run typecheck test
