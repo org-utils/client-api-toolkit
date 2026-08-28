@@ -10,12 +10,12 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/org-utils/api-toolkit.git",
+    "url": "https://github.com/org-utils/client-api-toolkit.git",
     "directory": "packages/errors"
   },
-  "homepage": "https://github.com/org-utils/api-toolkit/tree/main/packages/errors#readme",
+  "homepage": "https://github.com/org-utils/client-api-toolkit/tree/main/packages/errors#readme",
   "bugs": {
-    "url": "https://github.com/org-utils/api-toolkit/issues"
+    "url": "https://github.com/org-utils/client-api-toolkit/issues"
   },
   "publishConfig": {
     "access": "public",
