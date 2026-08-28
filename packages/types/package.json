@@ -1,6 +1,6 @@
 {
   "name": "client-api-types",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Shared TypeScript types and utilities for JavaScript and TypeScript applications.",
   "keywords": [
     "typescript",
