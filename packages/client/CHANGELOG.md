@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.10
+
+### Patch Changes
+
+- [`b97ad22`](https://github.com/org-utils/client-api-toolkit/commit/b97ad223848b3d799fb5c0ec60098d37e785b611) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated packages repo urls
+
 ## 0.5.9
 
 ### Patch Changes
