@@ -39,6 +39,8 @@ boundary onto code that only ever runs on the server. So:
 
 ## Quick start
 
+### Server component / server action
+
 ```ts
 // lib/api/client.ts - shared by both server and client code
 import { createApiClient } from "client-api-kit";
@@ -58,6 +60,8 @@ export const apiClient = createApiClient({
 });
 ```
 
+### One resource definition, used everywhere
+
 ```ts
 // lib/api/users.ts - one resource definition, used everywhere
 import { createResource, type OffsetPaginationParams } from "client-api-kit";
@@ -73,7 +77,7 @@ export const usersResource = createResource<User, OffsetPaginationParams, Create
 );
 ```
 
-### Server component / server action
+#### Server component / server action
 
 ```ts
 // app/users/page.tsx (Server Component)
@@ -114,7 +118,7 @@ export async function createUser(input: { name: string; email: string }) {
 }
 ```
 
-### Client component
+#### Client component
 
 ```tsx
 // app/providers.tsx
@@ -129,7 +133,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ### React Query Devtools
 
 `ApiQueryProvider` accepts an `enableDevtools` flag - when on, it renders the
-[`ReactQueryDevtools`](https://tanstack.com/query/latest/docs/framework/react/devtools)
+[ReactQueryDevtools](https://tanstack.com/query/latest/docs/framework/react/devtools)
 overlay. `@tanstack/react-query-devtools` is an optional peer dependency and is
 lazily imported, so it's never bundled into consumers that don't enable it:
 
@@ -148,7 +152,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ```
 
 `devtoolsProps` forwards any
-[`ReactQueryDevtools` props](https://tanstack.com/query/latest/docs/framework/react/devtools)
+[ReactQueryDevtools props](https://tanstack.com/query/latest/docs/framework/react/devtools)
 (e.g. `position`, `initialIsOpen` - anything you set overrides the built-in
 `initialIsOpen: false` default). Install the devtools package when you want
 the overlay: `npm install -D @tanstack/react-query-devtools`
@@ -293,21 +297,23 @@ const client = createApiClient({
 });
 ```
 
-- **Envelope-aware**: expects a `client-api-types`-shaped `{ success, data, ... }`
-  body and unwraps it into `SuccessResponse<T>` (so you get `.data` *and*
-  `.pagination` from one call). A bare, un-enveloped JSON body from a
-  third-party API is still handled - it's synthesized into a `SuccessResponse`
-  automatically, so you can point this client at APIs that don't use the
-  envelope too.
-- **Retry**: automatic exponential backoff (capped at 5s) for transient
-  failures (network errors, 408/429/5xx), but **only on idempotent methods**
-  (`GET`, `HEAD`, `OPTIONS`, `DELETE` by default) - `POST`/`PATCH` are never
-  auto-retried, since retrying a possibly-already-applied mutation can
-  duplicate side effects. Configure via `retry: { retryMethods: [...] }`, or
-  disable entirely with `retry: false`.
-- **Auth**: `getAuthToken` can be sync or async (e.g. `await cookies()` in a
-  server action) and is called fresh on every request - no stale-token bugs
-  from caching it once at client-creation time.
+**Envelope-aware**: expects a `client-api-types`-shaped `{ success, data, ... }`
+body and unwraps it into `SuccessResponse<T>` (so you get `.data` *and*
+`.pagination` from one call). A bare, un-enveloped JSON body from a
+third-party API is still handled - it's synthesized into a `SuccessResponse`
+automatically, so you can point this client at APIs that don't use the
+envelope too.
+
+**Retry**: automatic exponential backoff (capped at 5s) for transient
+failures (network errors, 408/429/5xx), but **only on idempotent methods**
+(`GET`, `HEAD`, `OPTIONS`, `DELETE` by default) - `POST`/`PATCH` are never
+auto-retried, since retrying a possibly-already-applied mutation can
+duplicate side effects. Configure via `retry: { retryMethods: [...] }`, or
+disable entirely with `retry: false`.
+
+**Auth**: `getAuthToken` can be sync or async (e.g. `await cookies()` in a
+server action) and is called fresh on every request - no stale-token bugs
+from caching it once at client-creation time.
 
 ### Escape hatch
 
@@ -376,8 +382,7 @@ handlers). The default `"throw"` mode is what the hooks layer
 | `"result"` | `Promise<ResourceResult<T>>` | `{ success: false; error: ApiClientError }` - never throws |
 | `"query"` | `Promise<QueryResult<T>>` | TanStack Query-shaped `{ data, error, isError, ... }` - never throws |
 
-`mode: "result"` - every method returns a typed
-`{ success: true; data } | { success: false; error }` union:
+### `mode: "result"` - every method returns a typed
 
 ```ts
 import { createResource } from "client-api-kit";
@@ -399,7 +404,7 @@ the success branch, `error` is an `ApiClientError` (`kind`, `statusCode`,
 `code`, `details`) in the failure branch. `list` resolves
 `ResourceResult<ListResult<T>>`, `remove` resolves `ResourceResult<null>`.
 
-## Query-style results (`mode: "query"`)
+### Query-style results (`mode: "query"`)
 
 `mode: "query"` makes every method resolve a settled, **TanStack Query-shaped**
 object - the same field names the hooks return (`data`, `error`, `isError`,
@@ -447,7 +452,7 @@ swap `useProductHooks.useGetById(id)` for `await productResource.getById(id)`
 `isFetching` are always `false` - after `await` the call is settled, so the
 type model has no in-flight state; the fields exist purely for parity.
 
-## Switching modes at runtime (`setMode`)
+### Switching modes at runtime (`setMode`)
 
 `setMode` works like `setHeaders`/`setConfig`: it switches the resource's
 mode on the fly, and returns the same resource typed for the new mode so the
@@ -464,7 +469,7 @@ if (!res.success) return res.error.message; // error: ApiClientError
 users.setMode("throw"); // rejects with ApiClientError again
 ```
 
-## Hooks need the default `"throw"` mode - prefetching works in any mode
+### Hooks need the default `"throw"` mode - prefetching works in any mode
 
 `createResourceHooks` expects the resource in the default `"throw"` mode:
 the hooks layer relies on rejected promises to set `isError`, so pass the
@@ -549,7 +554,7 @@ function Feed() {
         <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
           Load more
         </button>
-      )}
+      </>
     </>
   );
 }

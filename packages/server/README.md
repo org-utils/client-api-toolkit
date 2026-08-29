@@ -99,7 +99,7 @@ successResponse(user, { message: "Profile updated", meta: { requestId: "req_123"
 import {
   AppError, BadRequestError, ValidationError, UnauthorizedError, ForbiddenError,
   NotFoundError, ConflictError, TooManyRequestsError, InternalServerError,
-  ServiceUnavailableError, // ...and more, see src/errors/app-error.ts
+  ServiceUnavailableError, GatewayTimeoutError,
 } from "api-response-tsjs";
 
 throw new NotFoundError(`User ${id} not found`);
@@ -140,11 +140,11 @@ try {
   const body = errorResponse(appError, { includeStack: process.env.NODE_ENV !== "production" });
   res.status(body.statusCode).json(body);
 }
-```
 
-`normalizeError` never throws - it safely handles `Error` instances, strings,
+normalizeError never throws - it safely handles `Error` instances, strings,
 and arbitrary rejected values (even `undefined`/`null`), so your error
 handler doesn't need its own defensive branching.
+```
 
 ## Pagination
 
@@ -302,7 +302,7 @@ app.get("/users/:id", (c) => {
 app.notFound(notFoundHandler());
 app.onError(createErrorHandler({
   onError: (err, c) => console.error({ err, url: c.req.url }, "request failed"),
-}));
+});
 ```
 
 `createErrorHandler` converts anything thrown in a handler (via
@@ -342,8 +342,6 @@ if (result.success) { /* result.data */ } else { /* result.errors, result.tree *
 | `api-response-tsjs/fastify` | `createErrorHandler`, `notFoundHandler`, `validateRequest` |
 | `api-response-tsjs/hono` | `createErrorHandler`, `notFoundHandler` |
 | `api-response-tsjs/zod` | `fromZodError`, `ZodErrors`, `getIssueMessage`, `fastifyValidationPlugin` |
-
-Full API reference for every method and config type: [docs/](docs/README.md).
 
 Express, Fastify, Hono, and Zod are **optional peer dependencies** - install
 only the ones you use. The core imports neither zod nor any framework code;

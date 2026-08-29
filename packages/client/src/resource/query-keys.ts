@@ -6,6 +6,12 @@
  *
  * @typeParam ListParams - The resource's list params shape, used to key
  *   list/infinite queries distinctly by their params.
+ *
+ * @returns A factory of query-key builders for the resource.
+ *
+ * @example
+ * const keys = createQueryKeys<OffsetPaginationParams>("users");
+ * keys.list({ page: 1 }); // ["users", "list", { page: 1 }]
  */
 export interface QueryKeyFactory<ListParams> {
   /** `[resourceName]` - the root key; invalidating it clears every query for the resource. */
@@ -40,6 +46,7 @@ export interface QueryKeyFactory<ListParams> {
  * @typeParam ListParams - The resource's list params shape.
  * @param resourceName - Stable, unique name for the resource, e.g. `"users"`.
  *   Use a different name per resource so their caches don't collide.
+ *
  * @returns A factory of query-key builders for this resource.
  *
  * @example
