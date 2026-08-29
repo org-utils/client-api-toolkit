@@ -42,21 +42,43 @@ const EMPTY_OFFSET_PAGINATION = {
 /**
  * Controls how resource operations expose errors.
  *
- * - `throw`  — operations reject with `ApiClientError`.
- * - `result` — operations resolve to `{ success, data/error }`.
- * - `query`  — operations resolve to a settled TanStack Query-like result.
+ * - `throw`  (default) — operations reject with `ApiClientError`.
+ * - `result` — operations resolve to `{ success: true; data } | { success: false; error: ApiClientError }` without throwing.
+ * - `query`  — operations resolve to a settled TanStack Query-shaped result
+ *   (`{ data, error, isError, isSuccess, isLoading, isPending, isFetching }`)
+ *   but type-safe with strict discriminant `status`.
+ *
+ * @default "throw"
  */
 export type ResourceMode = "throw" | "result" | "query";
 
 /**
  * @deprecated Use {@link ResourceMode}.
+ *
+ * Alias for {@link ResourceMode}. Kept for backward compatibility.
  */
 export type ResourceErrorMode = ResourceMode;
 
 /**
  * Result returned by a resource configured with `mode: "result"`.
  *
- * @typeParam T - Successful response payload.
+ * This union is returned by every CRUD method (`list`, `getById`, `create`,
+ * `update`, `remove`, `custom`) when the resource is created with
+ * `mode: "result"`. Never throws - the caller should check `result.success`.
+ *
+ * @typeParam T - The type of the successful data payload.
+ *
+ * @example
+ * ```ts
+ * const res = await users.update(id, { name: "New Name" });
+ * if (res.success) {
+ *   // res.data is typed as User
+ *   console.log(res.data.name);
+ * } else {
+ *   // res.error is typed as ApiClientError
+ *   console.log(res.error.message, res.error.details);
+ * }
+ * ```
  */
 export type ResourceResult<T> =
   | {
@@ -73,9 +95,23 @@ export type ResourceResult<T> =
  * `mode: "query"`.
  *
  * This is intentionally a **settled** result. There is no loading state
- * because resource methods are already awaited.
+ * because resource methods are already awaited. The `status` field is a
+ * strict discriminant - the type system knows `data` exists exactly when
+ * `status === "success"`, and `error` exists exactly when `status === "error"`.
  *
- * @typeParam T - Successful response payload.
+ * @typeParam T - The type of the successful data payload.
+ *
+ * @example
+ * ```ts
+ * const res = await productResource.getById(params.id);
+ * if (res.status === "success") {
+ *   // res.data is typed as Product
+ *   console.log(res.data.name);
+ * } else if (res.status === "error") {
+ *   // res.error is typed as ApiClientError
+ *   console.log(res.error.message, res.error.code);
+ * }
+ * ```
  */
 export type QueryResult<T> =
   | {
@@ -104,11 +140,26 @@ export type QueryResult<T> =
  *
  * If the resource operation failed, the contained `ApiClientError` is thrown.
  *
+ * This is useful when you need the raw data regardless of the resource's
+ * current mode. For example, with `mode: "result"`, you can call
+ * `unwrapResourceResult` to get the data, and it will throw if there was
+ * an error. With `mode: "query"`, it extracts the `data` field.
+ *
  * @example
  * ```ts
  * const result = await users.getById("123");
- * const user = unwrapResourceResult(result);
+ * const user = unwrapResourceResult(result); // throws if error, returns User if success
  * ```
+ *
+ * @typeParam T - The expected type of the resource data.
+ *
+ * @param result - A resource result, which can be a raw result, `ResourceResult<T>`,
+ *   or `QueryResult<T>`.
+ *
+ * @returns The typed data `T` if the operation was successful.
+ *
+ * @throws {ApiClientError} Throws the contained error if the result represents
+ * a failure in `mode: "result"` or `mode: "query"`.
  */
 export function unwrapResourceResult<T>(
   result: T | ResourceResult<T> | QueryResult<T>,
@@ -138,8 +189,25 @@ export function unwrapResourceResult<T>(
  * Runtime validators for standard CRUD operations.
  *
  * These are useful with libraries such as Zod, Valibot, ArkType, etc.
+ * Each parser is an optional function that takes the raw server response
+ * and returns the typed data. If the parser throws (e.g. Zod's `parse`),
+ * the error is normalized into an `ApiClientError` with `kind: "unknown"`.
  *
  * @typeParam T - Resource entity type.
+ *
+ * @example
+ * ```ts
+ * import { z } from "zod";
+ * const userSchema = z.object({ id: z.string(), name: z.string() });
+ *
+ * const users = createResource<User>(apiClient, {
+ *   baseURL: "/users",
+ *   parse: {
+ *     getById: (data) => userSchema.parse(data), // throws ZodError on mismatch
+ *     list: (data) => z.array(userSchema).parse(data),
+ *   },
+ * });
+ * ```
  */
 export type ResourceParsers<T> = {
   /** Validates the list payload. */
@@ -158,8 +226,38 @@ export type ResourceParsers<T> = {
 /**
  * Options used to create a resource.
  *
- * @typeParam Mode - Initial resource error mode.
+ * The resource mode determines how methods report outcomes:
+ *
+ * - `"throw"` (default) - methods reject with `ApiClientError`.
+ * - `"result"` - methods return `{ success, data/error }` without throwing.
+ * - `"query"` - methods return a TanStack Query-shaped settled result.
+ *
+ * @typeParam Mode - Initial resource error mode. Defaults to `"throw"`.
  * @typeParam T - Resource entity type.
+ *
+ * @param baseURL - Resource base path relative to the API client's base URL.
+ *   e.g. `"/users"`.
+ * @param mode - Controls how errors are returned. Defaults to `"throw"`.
+ * @param parse - Optional runtime response validators for `list`, `getById`,
+ *   `create`, and `update`.
+ *
+ * @example
+ * ```ts
+ * const users = createResource<User>(api, {
+ *   baseURL: "/users",
+ *   mode: "result", // methods return ResourceResult<T> instead of throwing
+ * });
+ * ```
+ *
+ * @example
+ * ```ts
+ * const users = createResource<User>(api, {
+ *   baseURL: "/users",
+ *   parse: {
+ *     getById: (data) => zodSchema.parse(data),
+ *   },
+ * });
+ * ```
  */
 export type CreateResourceOptions<
   Mode extends ResourceMode = "throw",
@@ -189,7 +287,20 @@ export type CreateResourceOptions<
 };
 
 /**
- * Custom endpoint options.
+ * Custom endpoint options for per-request custom endpoints.
+ *
+ * These options are passed to the resource's `custom()` method to execute
+ * arbitrary HTTP requests relative to the resource's base path.
+ *
+ * @typeParam R - The expected return type of the custom endpoint.
+ *
+ * @example
+ * ```ts
+ * // POST /users/1/invite
+ * await users.custom("POST", "/invite", {
+ *   data: { email: "user@example.com" },
+ * });
+ * ```
  */
 export type CustomRequestOptions<R = unknown> = {
   /** Request body. */
@@ -207,6 +318,14 @@ export type CustomRequestOptions<R = unknown> = {
 
 /**
  * HTTP methods supported by the resource custom endpoint.
+ *
+ * These are the methods allowed for custom endpoint calls via
+ * `resource.custom(method, path?, options?)`.
+ *
+ * @example
+ * ```ts
+ * await users.custom("POST", "/bulk-import", { data: payload });
+ * ```
  */
 export type CustomHttpMethod =
   | "GET"
@@ -431,15 +550,38 @@ type ResourceState = {
  *   });
  * ```
  *
+ * The resource operates in one of three modes, controlled by the `mode`
+ * option:
+ *
+ * - `"throw"` (default) - methods reject with `ApiClientError` on failure.
+ * - `"result"` - methods resolve to `{ success, data/error }` without throwing.
+ * - `"query"` - methods resolve to a settled TanStack Query-shaped result.
+ *
  * @typeParam T - Resource entity type.
  * @typeParam ListParams - Parameters accepted by `list`.
  * @typeParam CreateInput - Payload accepted by `create`.
  * @typeParam UpdateInput - Payload accepted by `update`.
  *
- * @param client - Shared API client.
- * @param options - Resource configuration.
+ * @param client - Shared API client instance.
+ * @param options - Resource configuration options.
  *
- * @returns A mode-specific resource client.
+ * @returns A mode-specific resource client conforming to
+ * {@link ResourceClientByMode} based on the selected `mode`.
+ *
+ * @example
+ * ```ts
+ * const users = createResource<User>(api, {
+ *   baseURL: "/users",
+ * });
+ * ```
+ *
+ * @example
+ * ```ts
+ * const users = createResource<User>(api, {
+ *   baseURL: "/users",
+ *   mode: "result",
+ * });
+ * ```
  */
 export function createResource<
   T,

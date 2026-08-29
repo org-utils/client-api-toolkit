@@ -2,6 +2,9 @@
  * The subset of HTTP status codes this library's built-in errors and
  * success builders use. Custom statuses belong on `CustomError`, not by
  * widening this union.
+ *
+ * This is a closed set of built-in status codes. Use `CustomError` for
+ * domain-specific status codes, not by widening this union.
  */
 export type HttpStatusCode =
   | 200

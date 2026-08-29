@@ -30,4 +30,4 @@ export type STATUS_CODES =
   | "SERVICE_UNAVAILABLE"
   | "GATEWAY_TIMEOUT"
   | "UNKNOWN_ERROR"
-  | (string & {})
+  | (string & {});

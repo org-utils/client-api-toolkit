@@ -1,7 +1,15 @@
 /**
  * `client-api-kit` - framework-agnostic HTTP client and generic CRUD
  * resources, safe to call from server components, server actions, route
- * handlers, or any Node/Edge script. See the README for usage.
+ * handlers, or any Node/Edge script.
+ *
+ * The package ships three consumable entry points:
+ *
+ * - `client-api-kit` - framework-agnostic core (no React dependency)
+ * - `client-api-kit/react` - TanStack Query hooks layer (`"use client"`)
+ * - `client-api-kit/server` - TanStack Query prefetch helpers (no `"use client"`)
+ *
+ * See the README for usage examples, API reference, and development guides.
  */
 
 // Client

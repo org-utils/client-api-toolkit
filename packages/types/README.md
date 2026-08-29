@@ -2,27 +2,27 @@
 
 Shared TypeScript types and utilities for JavaScript and TypeScript applications.
 
-`client-api-types` is a lightweight, dependency-free package designed to provide reusable TypeScript declarations across frontend applications, backend services, API clients, and shared packages.
+`client-api-types` is a lightweight, dependency-free package designed to provide
+reusable TypeScript declarations across frontend applications, backend services,
+API clients, and shared packages.
 
-The package is intentionally **type-only at runtime**. It does not ship JavaScript bundles. All public exports resolve to generated `.d.ts` files.
+The package is intentionally **type-only at runtime**. It does not ship JavaScript
+bundles. All public exports resolve to generated `.d.ts` files.
 
 ## Features
 
-* 📦 TypeScript-first package
-* 🧩 Separate public entry points
-* 🌐 Works across frontend and backend projects
-* ⚡ Zero runtime dependencies
-* 🪶 Lightweight package footprint
-* 🔒 Strictly typed public APIs
-* ♻️ Reusable shared types
-* 📁 API-specific types
-* 💻 Client-specific types
-* 🔄 Shared types between client and server
-* 📦 ESM-compatible package exports
-* 🚀 Declaration-only builds
-* 🦋 Changesets-ready release workflow
-
----
+- 📦 TypeScript-first package
+- 🧩 Separate public entry points
+- 🌐 Works across frontend and backend projects
+- ⚡ Zero runtime dependencies
+- 🪶 Lightweight package footprint
+- 🔒 Strictly typed public APIs
+- 📁 API-specific types
+- 💻 Client-specific types
+- 🔄 Shared types between client and server
+- 📦 ESM-compatible package exports
+- 🚀 Declaration-only builds
+- 🦋 Changesets-ready release workflow
 
 ## Installation
 
@@ -50,25 +50,21 @@ Using Bun:
 bun add client-api-types
 ```
 
----
-
-# Package Structure
+## Package Structure
 
 The package exposes four public entry points:
 
 ```text
 client-api-types
-├── client-api-types
-├── client-api-types/api
-├── client-api-types/client
-└── client-api-types/shared
+├── client-api-types          # Root entry point
+├── client-api-types/api      # API-specific types
+├── client-api-types/client   # Client configuration types
+└── client-api-types/shared   # Shared types between client and server
 ```
 
 Each entry point is independently importable.
 
----
-
-# Root Import
+## Root Import
 
 Use the root package when you need the primary public types.
 
@@ -85,9 +81,7 @@ The root entry point resolves to:
 dist/index.d.ts
 ```
 
----
-
-# API Types
+## API Types
 
 Use the `/api` entry point for API-specific types.
 
@@ -101,13 +95,13 @@ import type {
 
 This is useful for:
 
-* API request types
-* API response types
-* pagination types
-* API errors
-* resource types
-* server contracts
-* HTTP-related types
+- API request types
+- API response types
+- Pagination types
+- API errors
+- Resource types
+- Server contracts
+- HTTP-related types
 
 Example:
 
@@ -129,9 +123,7 @@ The API entry point resolves to:
 dist/api/index.d.ts
 ```
 
----
-
-# Client Types
+## Client Types
 
 Use `/client` for types intended to be consumed by frontend applications and API clients.
 
@@ -144,12 +136,12 @@ import type {
 
 This is useful for:
 
-* API client configuration
-* request configuration
-* frontend state types
-* client-side resource types
-* query configuration
-* HTTP client contracts
+- API client configuration
+- Request configuration
+- Frontend state types
+- Client-side resource types
+- Query configuration
+- HTTP client contracts
 
 Example:
 
@@ -169,9 +161,7 @@ The client entry point resolves to:
 dist/client/index.d.ts
 ```
 
----
-
-# Shared Types
+## Shared Types
 
 Use `/shared` for types that need to be consumed by multiple parts of an application.
 
@@ -190,16 +180,15 @@ Frontend
    │
    ├── Next.js
    ├── React
-   └── Vue
-        │
-        ▼
-    client-api-types
-        ▲
-        │
-   ├── API service
-   ├── Node.js service
-   ├── Worker
-   └── CLI
+   └── Vue         │
+      ▼
+client-api-types
+      ▲
+      │
+API service
+├── Node.js service
+├── Worker
+├── CLI
 ```
 
 The shared entry point resolves to:
@@ -208,9 +197,7 @@ The shared entry point resolves to:
 dist/shared/index.d.ts
 ```
 
----
-
-# Recommended Usage
+## Recommended Usage
 
 For application-wide shared contracts:
 
@@ -256,9 +243,7 @@ import type { User } from "client-api-types/shared";
 
 This keeps consumers independent from the internal package structure.
 
----
-
-# Type-Only Package
+## Type-Only Package
 
 `client-api-types` intentionally ships declaration files instead of runtime JavaScript.
 
@@ -286,9 +271,7 @@ when importing types.
 
 This keeps the package completely runtime-independent.
 
----
-
-# Build
+## Build
 
 The package uses TypeScript to generate declaration files.
 
@@ -324,9 +307,7 @@ tsc --emitDeclarationOnly
 
 No JavaScript bundles are generated.
 
----
-
-# Generated Output
+## Generated Output
 
 After building, the package should have a structure similar to:
 
@@ -346,9 +327,7 @@ dist/
 
 Only files inside `dist` are included in the published package.
 
----
-
-# Type Checking
+## Type Checking
 
 Run:
 
@@ -364,9 +343,7 @@ tsc --noEmit
 
 It validates the project without generating files.
 
----
-
-# Formatting
+## Formatting
 
 Format the project with:
 
@@ -382,9 +359,7 @@ npm run format:check
 
 The package uses Prettier for formatting.
 
----
-
-# Linting
+## Linting
 
 Run:
 
@@ -394,9 +369,7 @@ npm run lint
 
 ESLint validates the source code and project configuration.
 
----
-
-# Publishing
+## Publishing
 
 The package uses [Changesets](https://github.com/changesets/changesets) for version management and publishing.
 
@@ -434,9 +407,7 @@ minor
 
 release.
 
----
-
-# Release Workflow
+## Release Workflow
 
 A typical release workflow is:
 
@@ -459,9 +430,9 @@ npm run version
 
 This updates:
 
-* `package.json`
-* package versions
-* changelog files
+- `package.json`
+- package versions
+- changelog files
 
 Review the changes:
 
@@ -488,9 +459,7 @@ The publish script executes:
 changeset publish
 ```
 
----
-
-# NPM Package Configuration
+## NPM Package Configuration
 
 The package exposes only declaration files:
 
@@ -519,9 +488,7 @@ The package exposes only declaration files:
 
 This means consumers cannot accidentally depend on internal source files.
 
----
-
-# TypeScript Configuration
+## TypeScript Configuration
 
 The package requires TypeScript:
 
@@ -537,43 +504,39 @@ Node.js >= 20
 
 The package itself does not require a runtime dependency.
 
----
-
-# Framework Compatibility
+## Framework Compatibility
 
 Because `client-api-types` contains declarations rather than framework-specific runtime code, it can be used with:
 
 ### Frontend
 
-* React
-* Next.js
-* Vue
-* Nuxt
-* Angular
-* Svelte
-* Vite
-* Remix
+- React
+- Next.js
+- Vue
+- Nuxt
+- Angular
+- Svelte
+- Vite
+- Remix
 
 ### Backend
 
-* Node.js
-* Express
-* Fastify
-* NestJS
-* Hono
-* Koa
+- Node.js
+- Express
+- Fastify
+- NestJS
+- Hono
+- Koa
 
 ### Other environments
 
-* Workers
-* CLI applications
-* Serverless functions
-* Monorepos
-* Shared libraries
+- Workers
+- CLI applications
+- Serverless functions
+- Monorepos
+- Shared libraries
 
----
-
-# Monorepo Usage
+## Monorepo Usage
 
 `client-api-types` is particularly useful in a monorepo.
 
@@ -607,11 +570,11 @@ and API contracts:
 import type { ApiResponse } from "client-api-types/api";
 ```
 
+Both sides now consume the same contract.
+
 This prevents duplicated interfaces across services.
 
----
-
-# API Contract Example
+## API Contract Example
 
 A shared API contract could look like:
 
@@ -649,21 +612,17 @@ import type {
 
 Both sides now consume the same contract.
 
----
+## Design Principles
 
-# Design Principles
-
-`client-api-types` follows several principles.
-
-## 1. No Runtime Dependencies
+### 1. No Runtime Dependencies
 
 The package should remain lightweight and safe to use anywhere TypeScript is supported.
 
-## 2. Type Safety
+### 2. Type Safety
 
 Public APIs should expose explicit and reusable TypeScript types.
 
-## 3. Stable Public Exports
+### 3. Stable Public Exports
 
 Consumers should import from:
 
@@ -676,17 +635,15 @@ client-api-types/shared
 
 rather than internal files.
 
-## 4. Framework Agnostic
+### 4. Framework Agnostic
 
 Types should not depend unnecessarily on React, Next.js, Express, Fastify, or another specific framework.
 
-## 5. Separation of Concerns
+### 5. Separation of Concerns
 
 API, client, and shared contracts should remain separated when they have different consumers.
 
----
-
-# Development
+## Development
 
 Clone the repository:
 
@@ -724,9 +681,13 @@ Format:
 npm run format
 ```
 
----
+Check formatting without modifying files:
 
-# Scripts
+```bash
+npm run format:check
+```
+
+## Scripts
 
 | Script                    | Description                     |
 | ------------------------- | ------------------------------- |
@@ -742,15 +703,11 @@ npm run format
 | `npm run version`         | Apply pending changesets        |
 | `npm run publish`         | Publish packages to npm         |
 
----
-
-# License
+## License
 
 MIT © Anwar Kamal
 
----
-
-# Repository
+## Repository
 
 Repository:
 
@@ -758,5 +715,4 @@ Repository:
 
 Issues and feature requests can be submitted through the project's GitHub repository.
 
-```
 ```

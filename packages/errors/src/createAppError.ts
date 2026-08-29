@@ -23,6 +23,60 @@ import { HttpStatus } from "./http-status.js";
 import type { AppErrorOptions } from "client-api-types";
 type ICustomStatuses = number[]
 type ICustomErrorCodes = string[]
+/**
+ * Creates a factory of convenience methods for generating common HTTP error
+ * instances.
+ *
+ * The returned object provides a method for each standard HTTP error status
+ * code, making it easy to create typed errors in your handlers without
+ * manually constructing each class.
+ *
+ * The factory also merges custom status codes and error codes into the
+ * returned `HTTP_STATUS` and `ERROR_CODES` objects.
+ *
+ * @param config - Configuration object with optional custom HTTP status codes
+ *   and error codes.
+ * @param config.httpStatuses - Optional custom HTTP status code mappings
+ *   (e.g., `{ CUSTOM: 499 }`).
+ * @param config.errorCodes - Optional custom error code strings (e.g.,
+ *   `{ CUSTOM: "CUSTOM_ERROR" }`).
+ *
+ * @returns An object with a method for each HTTP error type, plus
+ *   `HTTP_STATUS` and `ERROR_CODES` merged with any custom values.
+ *
+ * @example
+ * ```ts
+ * const appError = createAppError({
+ *   httpStatuses: { CUSTOM: 499 },
+ *   errorCodes: { CUSTOM: "CUSTOM_ERROR" },
+ * });
+ *
+ * // Convenience methods
+ * appError.notFound("Resource not found");                    // new NotFoundError(...)
+ * appError.validation("Invalid input", [{ field: "name", message: "required" }]); // new ValidationError(...)
+ * appError.unauthorized("Authentication required");           // new UnauthorizedError(...)
+ * appError.forbidden("You do not have permission");           // new ForbiddenError(...)
+ * appError.notFound("Resource not found");                    // new NotFoundError(...)
+ * appError.methodNotAllowed("Method not allowed");            // new MethodNotAllowedError(...)
+ * appError.conflict("Resource conflict");                     // new ConflictError(...)
+ * appError.gone("Resource no longer available");              // new GoneError(...)
+ * appError.preconditionFailed("Precondition failed");         // new PreconditionFailedError(...)
+ * appError.payloadTooLarge("Payload too large");              // new PayloadTooLargeError(...)
+ * appError.unsupportedMediaType("Unsupported media type");    // new UnsupportedMediaTypeError(...)
+ * appError.unprocessableEntity("Unprocessable entity");       // new ValidationError(...)
+ * appError.tooManyRequests("Slow down", 30);                  // new TooManyRequestsError(..., 30)
+ * appError.internalServerError("Internal error");             // new InternalServerError(...)
+ * appError.notImplemented("Not implemented");                 // new NotImplementedError(...)
+ * appError.badGateway("Bad gateway");                        // new BadGatewayError(...)
+ * appError.serviceUnavailable("Service unavailable");         // new ServiceUnavailableError(...)
+ * appError.gatewayTimeout("Gateway timeout");                 // new GatewayTimeoutError(...)
+ * appError.customError("Custom error");                      // new CustomError(...)
+ *
+ * // Custom status/codes are merged into the returned objects:
+ * appError.HTTP_STATUS.CUSTOM; // 499
+ * appError.ERROR_CODES.CUSTOM; // "CUSTOM_ERROR"
+ * ```
+ */
 export function createAppError<
   const TStatuses extends ICustomStatuses,
   const TCodes extends ICustomErrorCodes,
