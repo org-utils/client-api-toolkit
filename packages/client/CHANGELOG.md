@@ -1,5 +1,11 @@
 # client-api-kit
 
+## 0.5.11
+
+### Patch Changes
+
+- [#20](https://github.com/org-utils/client-api-toolkit/pull/20) [`00a5207`](https://github.com/org-utils/client-api-toolkit/commit/00a5207db3bc94fb5983d032b433de7918dca016) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated readmes and jsdocs
+
 ## 0.5.10
 
 ### Patch Changes
