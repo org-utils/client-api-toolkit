@@ -1,4 +1,4 @@
-import { Context, ErrorHandler, NotFoundHandler } from "hono";
+import { Context, ErrorHandler, MiddlewareHandler, NotFoundHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { errorResponse } from "../responses/error.js";
 import { NotFoundError, ValidationError, normalizeError } from "client-api-errors";
@@ -56,69 +56,116 @@ export function notFoundHandler(): NotFoundHandler {
     return c.json(errorResponse(appError), 404);
   };
 }
-
-
 // Helper function to create validation middleware
 /**
  * Validates request data with a schema library exposing a `.parse` method
  * (zod, valibot, arktype, ...); thrown `{ issues: [...] }`-shaped failures are
  * converted into a `ValidationError` with field-level details.
  *
+ * The validated data is stored in `c.set()` and can be accessed via:
+ * - `c.get('body')` for body validation
+ * - `c.get('query')` for query validation
+ * - `c.get('params')` for params validation
+ *
  * @example
  * ```typescript
- * // Using with preHandler middleware
- * fastify.post('/users', {
- *   preHandler: validateRequest(userSchema)
- * }, async (req, reply) => {
- *   // req.body is automatically validated and typed
- * });
+ * // Using with Hono middleware
+ * app.post('/users',
+ *   validateRequest(userSchema),
+ *   async (c) => {
+ *     // c.get('body') is automatically validated and typed
+ *     const validatedBody = c.get('body');
+ *     // or use helper: getValidatedBody<typeof userSchema>(c)
+ *   }
+ * );
  * ```
- *  * @example
+ *
+ * @example
  * ```typescript
- * // Using with preHandler middleware
- * fastify.post('/users', {
- *   preHandler: validateRequest(userSchema, 'body')
- * }, async (req, reply) => {
- *   // req.body is automatically validated and typed
- * });
+ * // Validating query parameters
+ * app.get('/users',
+ *   validateRequest(querySchema, 'query'),
+ *   async (c) => {
+ *     const validatedQuery = c.get('query');
+ *     // validatedQuery is typed according to querySchema
+ *   }
+ * );
  * ```
- *  *  * @example
+ *
+ * @example
  * ```typescript
- * // Using with preHandler middleware
- * fastify.post('/users', {
- *   preHandler: validateRequest(userSchema, 'query')
- * }, async (req, reply) => {
- *   // req.query is automatically validated and typed
- * });
+ * // Validating route parameters
+ * app.get('/users/:id',
+ *   validateRequest(paramsSchema, 'params'),
+ *   async (c) => {
+ *     const validatedParams = c.get('params');
+ *     // validatedParams is typed according to paramsSchema
+ *   }
+ * );
  * ```
- *  *  *  * @example
+ *
+ * @example
  * ```typescript
- * // Using with preHandler middleware
- * fastify.post('/users', {
- *   preHandler: validateRequest(userSchema, 'params')
- * }, async (req, reply) => {
- *   // req.params is automatically validated and typed
- * });
+ * // With custom error handling
+ * app.post('/users',
+ *   validateRequest(userSchema),
+ *   async (c) => {
+ *     try {
+ *       const body = c.get('body');
+ *       // Process validated data
+ *       return c.json({ success: true });
+ *     } catch (error) {
+ *       if (error instanceof ValidationError) {
+ *         return c.json({ error: error.message, details: error.details }, 400);
+ *       }
+ *       throw error;
+ *     }
+ *   }
+ * );
  * ```
+ *
+ * @example
+ * ```typescript
+ * // Helper functions for type-safe access
+ * function getValidatedBody<T>(c: Context): T {
+ *   return c.get('body') as T;
+ * }
+ *
+ * app.post('/users',
+ *   validateRequest(userSchema),
+ *   async (c) => {
+ *     const body = getValidatedBody<typeof userSchema>(c);
+ *     // body is fully typed
+ *   }
+ * );
+ * ```
+ *
+ * @param schema - Schema with `.parse()` method (Zod, Valibot, Arktype, etc.)
+ * @param location - Where to validate: 'body' (default), 'query', or 'params'
+ * @returns Hono middleware handler
  */
 export function validateRequest<T>(
   schema: ParsableSchema<T>,
   location: "body" | "query" | "params" = "body",
-) {
-  return async (c: Context) => {
+): MiddlewareHandler {
+  return async (c) => {
     try {
       switch (location) {
-        case "body":
-          const json = schema.parse(await c.req.json())
+        case "body": {
+          const json = schema.parse(await c.req.json());
           c.set("body", json as T);
-
           break;
-        case "query":
-          c.set("query", schema.parse(c.req.query()) as T);
+        }
+        case "query": {
+          const query = schema.parse(c.req.query());
+          c.set("query", query as T);
           break;
-        case "params":
-          c.set("params", schema.parse(c.req.param()) as T);
+        }
+        case "params": {
+          const params = schema.parse(c.req.param());
+          c.set("params", params as T);
           break;
+        }
       }
     } catch (error) {
       const details = extractValidationDetails(error);
