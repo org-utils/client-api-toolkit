@@ -109,13 +109,15 @@ export function validateRequest<T>(
     try {
       switch (location) {
         case "body":
-          c.set("body", schema.parse(await c.req.json()));
+          const json = schema.parse(await c.req.json())
+          c.set("body", json as T);
+
           break;
         case "query":
-          c.set("query", schema.parse(c.req.query()));
+          c.set("query", schema.parse(c.req.query()) as T);
           break;
         case "params":
-          c.set("params", schema.parse(c.req.param()));
+          c.set("params", schema.parse(c.req.param()) as T);
           break;
       }
     } catch (error) {
