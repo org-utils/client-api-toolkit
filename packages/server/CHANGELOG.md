@@ -1,5 +1,11 @@
 # api-response-tsjs
 
+## 0.1.11
+
+### Patch Changes
+
+- [`2c3d4b2`](https://github.com/org-utils/client-api-toolkit/commit/2c3d4b2886ebe959e317d5a3c586a36e00369a9d) Thanks [@Anwarkamal143](https://github.com/Anwarkamal143)! - Updated request validator for hono
+
 ## 0.1.10
 
 ### Patch Changes
